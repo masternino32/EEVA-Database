@@ -25,7 +25,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ## Drafts
 
-The cloud routine stores its drafts with `node supabase-db.js draft "<client name>" "<file>.pdf" <content>.json`, optionally followed by the email `.md`, which uploads to the private `drafts/` folder of the `documents` bucket and writes no `attachments` row, so nothing shows on the client record. `node supabase-db.js drafts` lists stored drafts and `node supabase-db.js draft-pull "<client name>"` downloads a client's draft PDF, JSON and email into `reports/` for review. To finalise, edit the JSON, rebuild with `build-report.js`, convert, and attach. `pending` excludes clients that already have a final report or a stored draft.
+The cloud routine stores its drafts with `node supabase-db.js draft "<client name>" "<file>.pdf" "<file>.docx" <content>.json "<email>.md"`, which uploads to the private `drafts/` folder of the `documents` bucket and writes no `attachments` row, so nothing shows on the client record. `node supabase-db.js drafts` lists stored drafts and `node supabase-db.js draft-pull "<client name>"` downloads a client's draft PDF, Word file, JSON and email into `reports/` for review. To finalise, edit the JSON, rebuild with `build-report.js`, convert, and attach. `pending` excludes clients that already have a final report or a stored draft.
 
 6. **Write the client email** as `reports/Email - <Client Name> - <DDMMYYYY>.md`, following `email-template.md`.
 
