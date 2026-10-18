@@ -44,3 +44,11 @@ All new reports and emails go in `reports/`. `PDF Report Files/` and `Word Repor
 `routine.json` is the definition of the hourly Claude Code cloud routine that drafts a report for every new intake and stores it in the drafts folder for human review. It never attaches anything to a client record. Submit it from a Claude Code session with the RemoteTrigger tool (action `create`). Prerequisites on claude.ai: the GitHub account connected with access to this repository, and `SUPABASE_URL` plus `SUPABASE_SERVICE_ROLE_KEY` set as environment variables on the cloud environment named in the file. Routines are managed at https://claude.ai/code/routines.
 
 Status: the cloud environment is configured (`SUPABASE_SERVICE_ROLE_KEY` as an environment variable, `ftctubuplwqsdypthnyw.supabase.co` in allowed domains, setup script running `npm install` inside the clone) and the routine is live, running hourly at minute 20, as of 18 October 2026.
+
+## CRM sync
+
+Every real intake should have a contact in OnePageCRM. `node crm.js pending 7` reads the last 7 days of evaluations and prints one CRM-ready record per client: name, email, phone in international format, country code, status `Inquiries`, a background with the basic details (name, email, phone, country, age, gender), and the custom fields Inquiry Date (the submission date in Bangkok time), Arrival Date (2027-01-10), Treatment For (mapped from the intake) and Treatment Price. Test submissions carry a `skip` reason. `node crm.js payload "<client name>"` prints the record for one client.
+
+The price is 240,000 THB converted into the client's local currency at the live rate from open.er-api.com, then api.frankfurter.app, and rounded to whole units. When neither source can be reached, the rates stored in `fx-fallback.json` are used and the record says so. Unrecognised countries are priced in USD and flagged. `node crm.js price "<country>"` shows the price for a country.
+
+`crm.js` never writes to the CRM. The hourly cloud routine "EEVA CRM sync" (definition in `routine-crm.json`) does that through the OnePageCRM connector: it creates a contact when no contact has the same email, and otherwise only fills empty Inquiry Date, Arrival Date, Treatment For and Treatment Price fields. It never overwrites values that are already set.
