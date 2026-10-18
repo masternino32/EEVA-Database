@@ -4,7 +4,7 @@ Copy everything below the line into a new Claude Desktop chat (Code tab, with th
 
 ---
 
-I need you to finish setting up the automatic EEVA report routine for New Paradigm Trauma Institute. Most of the work is done. Here is the current state, then the four tasks left.
+I need you to finish setting up the automatic EEVA report routine for New Paradigm Mental Health Retreat. Most of the work is done. Here is the current state, then the four tasks left.
 
 CURRENT STATE
 - Local project folder: C:\Users\Nino\OneDrive\Documents\Claude\Projects\EEVA Report. It is pushed to GitHub as masternino32/EEVA-Database. Read its README.md and routine.json first; CLAUDE.md holds the report rules.

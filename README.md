@@ -1,6 +1,6 @@
 # EEVA Report
 
-Tooling for writing Emotional Evaluation and Treatment Plan reports for prospective clients of New Paradigm Trauma Institute. The clinical and formatting rules for the report text live in [CLAUDE.md](CLAUDE.md). This file covers the mechanics.
+Tooling for writing Emotional Evaluation and Treatment Plan reports for prospective clients of New Paradigm Mental Health Retreat. The clinical and formatting rules for the report text live in [CLAUDE.md](CLAUDE.md). This file covers the mechanics.
 
 ## Setup
 

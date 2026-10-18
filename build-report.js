@@ -5,7 +5,7 @@
 // Content file shape (see report-content.example.json):
 // {
 //   "client": "Full Name",
-//   "subtitle": ["Proposed residential care | 10-23 January 2027", "New Paradigm Trauma Retreat, Chiang Mai, Thailand"],
+//   "subtitle": ["Proposed residential care | 10-23 January 2027", "New Paradigm Mental Health Retreat, Chiang Mai, Thailand"],
 //   "preparedBy": "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist and Program Director",
 //   "intro": "Opening paragraph addressed to the client.",
 //   "scores": { "rows": [["Despair", 4], ["Fear", 2]], "total": 15 },
@@ -112,7 +112,7 @@ const doc = new Document({
       new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 18, color: "777777" }),
     ] })] }) },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [
-      new TextRun({ text: "New Paradigm Trauma Institute | Prepared by Dirk J. Lambert, Trauma/EMDR Specialist and Program Director", font: FONT, size: 16, color: "777777" }),
+      new TextRun({ text: "New Paradigm Mental Health Retreat | Prepared by Dirk J. Lambert, Trauma/EMDR Specialist and Program Director", font: FONT, size: 16, color: "777777" }),
     ] })] }) },
     children,
   }],
