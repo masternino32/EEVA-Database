@@ -154,7 +154,7 @@ async function main() {
   } else if (cmd === "client") {
     const { body: clients } = await rest(cfg, `clients?select=*&name=ilike.*${encodeURIComponent(a1)}*`);
     for (const c of clients) {
-      const { body: evals } = await rest(cfg, `evaluations?select=*&client_id=eq.${c.id}&order=created_at.desc`);
+      const { body: evals } = await rest(cfg, `evaluations?select=*&client_id=eq.${c.id}&order=submitted_at.desc`);
       out({ client: c, evaluations: evals });
     }
     if (!clients.length) out({ message: `No client matching "${a1}"` });
