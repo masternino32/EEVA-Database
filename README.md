@@ -37,7 +37,7 @@ Tables used: `clients`, `evaluations` (one row per intake submission; `selected_
 
 ## Privacy
 
-Report files and the `.env` are excluded from git. Never commit anything under `reports/`, `PDF Report Files/` or `Word Report Files/`.
+All new reports and emails go in `reports/`. `PDF Report Files/` and `Word Report Files/` hold older reports only. Report files and the `.env` are excluded from git. Never commit anything under `reports/`, `PDF Report Files/` or `Word Report Files/`.
 
 ## Cloud automation
 
