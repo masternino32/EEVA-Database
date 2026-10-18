@@ -36,3 +36,5 @@ Report files and the `.env` are excluded from git. Never commit anything under `
 ## Cloud automation
 
 `routine.json` is the definition of the hourly Claude Code cloud routine that drafts a report for every new intake and attaches it to the client record with a DRAFT label. Submit it from a Claude Code session with the RemoteTrigger tool (action `create`). Prerequisites on claude.ai: the GitHub account connected with access to this repository, and `SUPABASE_URL` plus `SUPABASE_SERVICE_ROLE_KEY` set as environment variables on the cloud environment named in the file. Routines are managed at https://claude.ai/code/routines.
+
+Status: the cloud environment is configured (`SUPABASE_SERVICE_ROLE_KEY` as an environment variable, `ftctubuplwqsdypthnyw.supabase.co` in allowed domains, setup script running `npm install` inside the clone) and the routine is live, running hourly at minute 20, as of 18 October 2026.
