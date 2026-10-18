@@ -34,8 +34,9 @@ function loadConfig() {
       if (k && !cfg.SUPABASE_SERVICE_ROLE_KEY) cfg.SUPABASE_SERVICE_ROLE_KEY = k[1];
     }
   }
-  if (!cfg.SUPABASE_URL || !cfg.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error("No Supabase connection found. Create .env with SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+  if (!cfg.SUPABASE_URL) cfg.SUPABASE_URL = "https://ftctubuplwqsdypthnyw.supabase.co";
+  if (!cfg.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("No Supabase key found. Set SUPABASE_SERVICE_ROLE_KEY as an environment variable or in .env.");
     process.exit(1);
   }
   return cfg;
