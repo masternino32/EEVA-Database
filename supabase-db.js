@@ -72,14 +72,15 @@ async function main() {
     const { body } = await rest(cfg, `${a1}?${a2 || "select=*&limit=10"}`);
     out(body);
   } else if (cmd === "attach") {
-    // attach <client name> <category: client|eevas|sessions|medical> <file path>
+    // attach <client name> <category: client|eevas|sessions|medical> <file path> [label prefix]
     // Mirrors the dashboard's uploadFiles(): storage object + attachments row.
-    const [, name, category, filePath] = process.argv.slice(2);
+    // A label prefix such as "DRAFT" is shown in the dashboard ahead of the filename.
+    const [, name, category, filePath, labelPrefix] = process.argv.slice(2);
     const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(name)}*`);
     if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${name}"`, matches: clients }); process.exit(1); }
     const client = clients[0];
     const data = fs.readFileSync(filePath);
-    const label = path.basename(filePath);
+    const label = (labelPrefix ? labelPrefix.trim() + " " : "") + path.basename(filePath);
     const safe = label.replace(/[^\w.\-]+/g, "_");
     const objPath = `clients/${client.id}/${category}/${Date.now()}-${safe}`;
     const up = await fetch(`${cfg.SUPABASE_URL}/storage/v1/object/documents/${objPath}`, {
