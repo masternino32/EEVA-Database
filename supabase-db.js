@@ -6,7 +6,7 @@
 //   node supabase-db.js get <table> [params]   raw REST query, e.g. get clients "select=id,name&limit=5"
 //   node supabase-db.js client <name>          find a client by name and show their evaluations
 //   node supabase-db.js attach <name> <category> <pdf> [label prefix]   upload a FINAL report to the client record
-//   node supabase-db.js draft <name> <pdf> [json]  store a DRAFT in the private drafts/ folder (never on the client record)
+//   node supabase-db.js draft <name> <pdf> [json] [email.md]  store a DRAFT in the private drafts/ folder (never on the client record)
 //   node supabase-db.js drafts                     list stored drafts
 //   node supabase-db.js draft-pull <name> [dir]    download a client's draft files for local review (default dir: reports/)
 //
@@ -151,17 +151,19 @@ async function main() {
     }
     out({ client: client.name, attached: await ins.json() });
   } else if (cmd === "draft") {
-    // draft <client name> <pdf path> [json path]
+    // draft <client name> <pdf path> [json path] [email .md path]
     // Stores a DRAFT report in the private drafts/ folder of the documents bucket for human review.
     // It never touches the attachments table, so nothing appears on the client record in the dashboard.
-    const [, name, pdfPath, jsonPath] = process.argv.slice(2);
+    const [, name, ...files] = process.argv.slice(2);
+    const TYPES = { ".pdf": "application/pdf", ".json": "application/json", ".md": "text/markdown", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
     const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(name)}*`);
     if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${name}"`, matches: clients }); process.exit(1); }
     const client = clients[0];
     const stamp = Date.now();
     const stored = [];
-    for (const [file, type] of [[pdfPath, "application/pdf"], [jsonPath, "application/json"]]) {
-      if (!file) continue;
+    for (const file of files) {
+      const type = TYPES[path.extname(file).toLowerCase()];
+      if (!type) throw new Error(`Unsupported draft file type: ${file}`);
       const safe = path.basename(file).replace(/[^\w.\-]+/g, "_");
       const objPath = `drafts/${stamp}-${client.id}-${safe}`;
       await storagePut(cfg, objPath, fs.readFileSync(file), type);

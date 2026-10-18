@@ -93,4 +93,5 @@ Write in a compassionate, professional, and reassuring tone using clear language
 - Put the client information on a separate last page
 - Put the whole report in a word document in the proper dir
 - create a PDF file
+- Create a client email for every report as a Markdown file in reports/, named "Email - <Client Name> - <DDMMYYYY>.md" with the same date as the report. Follow email-template.md: fill every <placeholder>, keep only the optional paragraphs that the intake supports, and use the same recommendation and proposed dates as the report. The same writing rules apply: no em dash, no unsupported diagnoses, no promises of recovery.
 - Draft reports are never attached to a client record in Supabase. Only the final, human-reviewed report is attached, and only by a human. Automated drafts go to the private drafts folder in storage.
