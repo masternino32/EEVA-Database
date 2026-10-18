@@ -5,6 +5,10 @@
 //   node supabase-db.js columns <table>        column names (from one row)
 //   node supabase-db.js get <table> [params]   raw REST query, e.g. get clients "select=id,name&limit=5"
 //   node supabase-db.js client <name>          find a client by name and show their evaluations
+//   node supabase-db.js attach <name> <category> <pdf> [label prefix]   upload a FINAL report to the client record
+//   node supabase-db.js draft <name> <pdf> [json]  store a DRAFT in the private drafts/ folder (never on the client record)
+//   node supabase-db.js drafts                     list stored drafts
+//   node supabase-db.js draft-pull <name> [dir]    download a client's draft files for local review (default dir: reports/)
 //
 // Connection is read from .env in this folder (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).
 // If no .env exists, it falls back to the website config at ../../Websites/New Paradigm Claude/site/config.php.
@@ -53,6 +57,30 @@ async function rest(cfg, pathAndQuery, extraHeaders = {}) {
   const text = await res.text();
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 300)}`);
   return { headers: res.headers, body: text ? JSON.parse(text) : null };
+}
+
+async function storagePut(cfg, objPath, data, contentType) {
+  const up = await fetch(`${cfg.SUPABASE_URL}/storage/v1/object/documents/${objPath}`, {
+    method: "POST",
+    headers: { apikey: cfg.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": contentType, "x-upsert": "false" },
+    body: data,
+  });
+  if (!up.ok) throw new Error(`Storage upload failed HTTP ${up.status}: ${(await up.text()).slice(0, 300)}`);
+}
+
+// Drafts live flat under drafts/<timestamp>-<client_id>-<file> in the documents bucket, with no attachments row.
+async function listDrafts(cfg) {
+  const r = await fetch(`${cfg.SUPABASE_URL}/storage/v1/object/list/documents`, {
+    method: "POST",
+    headers: { apikey: cfg.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ prefix: "drafts/", limit: 1000, offset: 0, sortBy: { column: "name", order: "desc" } }),
+  });
+  if (!r.ok) throw new Error(`Storage list failed HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  const items = await r.json();
+  return items.filter((o) => o.id).map((o) => {
+    const m = o.name.match(/^(\d+)-([0-9a-f-]{36})-(.+)$/);
+    return { path: `drafts/${o.name}`, stored_at: m ? new Date(Number(m[1])).toISOString() : null, client_id: m ? m[2] : null, file: m ? m[3] : o.name };
+  });
 }
 
 async function main() {
@@ -122,6 +150,42 @@ async function main() {
       throw new Error(`Metadata insert failed HTTP ${ins.status}: ${msg} (storage object rolled back)`);
     }
     out({ client: client.name, attached: await ins.json() });
+  } else if (cmd === "draft") {
+    // draft <client name> <pdf path> [json path]
+    // Stores a DRAFT report in the private drafts/ folder of the documents bucket for human review.
+    // It never touches the attachments table, so nothing appears on the client record in the dashboard.
+    const [, name, pdfPath, jsonPath] = process.argv.slice(2);
+    const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(name)}*`);
+    if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${name}"`, matches: clients }); process.exit(1); }
+    const client = clients[0];
+    const stamp = Date.now();
+    const stored = [];
+    for (const [file, type] of [[pdfPath, "application/pdf"], [jsonPath, "application/json"]]) {
+      if (!file) continue;
+      const safe = path.basename(file).replace(/[^\w.\-]+/g, "_");
+      const objPath = `drafts/${stamp}-${client.id}-${safe}`;
+      await storagePut(cfg, objPath, fs.readFileSync(file), type);
+      stored.push(objPath);
+    }
+    out({ client: client.name, draft_stored: stored, note: "Draft only. Not attached to the client record." });
+  } else if (cmd === "drafts") {
+    out(await listDrafts(cfg));
+  } else if (cmd === "draft-pull") {
+    // draft-pull <client name> [dir] : download a client's draft files for local review
+    const dir = a2 || "reports";
+    const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(a1)}*`);
+    if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${a1}"`, matches: clients }); process.exit(1); }
+    const mine = (await listDrafts(cfg)).filter((d) => d.client_id === clients[0].id);
+    fs.mkdirSync(dir, { recursive: true });
+    const saved = [];
+    for (const d of mine) {
+      const r = await fetch(`${cfg.SUPABASE_URL}/storage/v1/object/documents/${d.path}`, { headers: { apikey: cfg.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}` } });
+      if (!r.ok) throw new Error(`Download failed HTTP ${r.status} for ${d.path}`);
+      const target = path.join(dir, d.file.replace(/_/g, " ").replace(/\.json$/, ".json"));
+      fs.writeFileSync(target, Buffer.from(await r.arrayBuffer()));
+      saved.push(target);
+    }
+    out({ client: clients[0].name, saved });
   } else if (cmd === "pending") {
     // pending [days=30] : evaluations from the last N days whose client has no EEVA report attached
     const days = Number(a1 || 30);
@@ -129,6 +193,7 @@ async function main() {
     const { body: evals } = await rest(cfg, `evaluations?select=id,client_id,submitted_at,score_raw,score_percent,current_situation,clients(name,email,country,age,gender)&submitted_at=gte.${since}&order=submitted_at.desc`);
     const { body: atts } = await rest(cfg, `attachments?select=client_id,path,label&path=like.*/eevas/*`);
     const done = new Set(atts.map((a) => a.client_id));
+    for (const d of await listDrafts(cfg)) done.add(d.client_id);
     const pending = evals.filter((e) => !done.has(e.client_id)).map((e) => ({
       evaluation_id: e.id,
       client_id: e.client_id,

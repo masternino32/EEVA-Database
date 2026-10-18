@@ -7,7 +7,7 @@ Write directly to the client in a compassionate, professional, and easy-to-under
 State that the report has been prepared by Dirk J. Lambert,  Trauma/EMDR  Specialist and Program Director.
 
 Ask inpatient or outpatient or both
-Ask the admission date for the 14 days intensive care program
+Ask the admission date for the 14 days intensive care program. When no date is given, or when the report is produced automatically, use the standing suggested date: admission on 10 January 2027, program running 10 to 23 January 2027. Present it as a proposed date, subject to confirmation at the suitability consultation, in the subtitle, the What to Expect phases (Days 1-3 | 10-12 January 2027, Days 4-7 | 13-16 January 2027, Days 8-11 | 17-20 January 2027, Days 12-14 | 21-23 January 2027), the Recommendations, and the Client Information page.
 
 ## Emotional Load Score Calculation
 
@@ -91,3 +91,4 @@ Write in a compassionate, professional, and reassuring tone using clear language
 - Put the client information on a separate last page
 - Put the whole report in a word document in the proper dir
 - create a PDF file
+- Draft reports are never attached to a client record in Supabase. Only the final, human-reviewed report is attached, and only by a human. Automated drafts go to the private drafts folder in storage.
