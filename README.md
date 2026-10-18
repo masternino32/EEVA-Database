@@ -32,3 +32,7 @@ Tables used: `clients`, `evaluations` (one row per intake submission; `selected_
 ## Privacy
 
 Report files and the `.env` are excluded from git. Never commit anything under `reports/`, `PDF Report Files/` or `Word Report Files/`.
+
+## Cloud automation
+
+`routine.json` is the definition of the hourly Claude Code cloud routine that drafts a report for every new intake and attaches it to the client record with a DRAFT label. Submit it from a Claude Code session with the RemoteTrigger tool (action `create`). Prerequisites on claude.ai: the GitHub account connected with access to this repository, and `SUPABASE_URL` plus `SUPABASE_SERVICE_ROLE_KEY` set as environment variables on the cloud environment named in the file. Routines are managed at https://claude.ai/code/routines.
