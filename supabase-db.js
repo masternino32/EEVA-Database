@@ -1,0 +1,164 @@
+// Supabase query helper for the EEVA Report project.
+// Usage:
+//   node supabase-db.js tables                 list tables exposed by the REST API
+//   node supabase-db.js count <table>          row count
+//   node supabase-db.js columns <table>        column names (from one row)
+//   node supabase-db.js get <table> [params]   raw REST query, e.g. get clients "select=id,name&limit=5"
+//   node supabase-db.js client <name>          find a client by name and show their evaluations
+//
+// Connection is read from .env in this folder (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).
+// If no .env exists, it falls back to the website config at ../../Websites/New Paradigm Claude/site/config.php.
+// The key is never printed.
+
+const fs = require("fs");
+const path = require("path");
+
+function loadConfig() {
+  const envPath = path.join(__dirname, ".env");
+  const cfg = {};
+  if (process.env.SUPABASE_URL) cfg.SUPABASE_URL = process.env.SUPABASE_URL;
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) cfg.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (fs.existsSync(envPath)) {
+    for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);
+      if (m) cfg[m[1]] = m[2].replace(/^["']|["']$/g, "");
+    }
+  }
+  if (!cfg.SUPABASE_URL || !cfg.SUPABASE_SERVICE_ROLE_KEY) {
+    const phpPath = path.join(__dirname, "..", "..", "Websites", "New Paradigm Claude", "site", "config.php");
+    if (fs.existsSync(phpPath)) {
+      const php = fs.readFileSync(phpPath, "utf8");
+      const u = php.match(/SUPABASE_URL'[^\n]*\?:\s*'([^']+)'/);
+      const k = php.match(/SUPABASE_SERVICE_ROLE_KEY'[^\n]*\?:\s*'([^']+)'/);
+      if (u && !cfg.SUPABASE_URL) cfg.SUPABASE_URL = u[1];
+      if (k && !cfg.SUPABASE_SERVICE_ROLE_KEY) cfg.SUPABASE_SERVICE_ROLE_KEY = k[1];
+    }
+  }
+  if (!cfg.SUPABASE_URL || !cfg.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("No Supabase connection found. Create .env with SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+    process.exit(1);
+  }
+  return cfg;
+}
+
+async function rest(cfg, pathAndQuery, extraHeaders = {}) {
+  const res = await fetch(`${cfg.SUPABASE_URL}/rest/v1/${pathAndQuery}`, {
+    headers: {
+      apikey: cfg.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}`,
+      ...extraHeaders,
+    },
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 300)}`);
+  return { headers: res.headers, body: text ? JSON.parse(text) : null };
+}
+
+async function main() {
+  const [cmd, a1, a2] = process.argv.slice(2);
+  const cfg = loadConfig();
+  const out = (v) => console.log(JSON.stringify(v, null, 2));
+
+  if (cmd === "tables") {
+    const { body } = await rest(cfg, "");
+    out(Object.keys(body.paths || {}).filter((p) => p !== "/").map((p) => p.slice(1)).sort());
+  } else if (cmd === "count") {
+    const { headers } = await rest(cfg, `${a1}?select=*&limit=1`, { Prefer: "count=exact" });
+    out({ table: a1, count: Number((headers.get("content-range") || "/0").split("/")[1]) });
+  } else if (cmd === "columns") {
+    const { body } = await rest(cfg, `${a1}?select=*&limit=1`);
+    out(body.length ? Object.keys(body[0]) : []);
+  } else if (cmd === "get") {
+    const { body } = await rest(cfg, `${a1}?${a2 || "select=*&limit=10"}`);
+    out(body);
+  } else if (cmd === "attach") {
+    // attach <client name> <category: client|eevas|sessions|medical> <file path>
+    // Mirrors the dashboard's uploadFiles(): storage object + attachments row.
+    const [, name, category, filePath] = process.argv.slice(2);
+    const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(name)}*`);
+    if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${name}"`, matches: clients }); process.exit(1); }
+    const client = clients[0];
+    const data = fs.readFileSync(filePath);
+    const label = path.basename(filePath);
+    const safe = label.replace(/[^\w.\-]+/g, "_");
+    const objPath = `clients/${client.id}/${category}/${Date.now()}-${safe}`;
+    const up = await fetch(`${cfg.SUPABASE_URL}/storage/v1/object/documents/${objPath}`, {
+      method: "POST",
+      headers: {
+        apikey: cfg.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/pdf",
+        "x-upsert": "false",
+      },
+      body: data,
+    });
+    if (!up.ok) throw new Error(`Storage upload failed HTTP ${up.status}: ${(await up.text()).slice(0, 300)}`);
+    const ins = await fetch(`${cfg.SUPABASE_URL}/rest/v1/attachments`, {
+      method: "POST",
+      headers: {
+        apikey: cfg.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        client_id: client.id,
+        evaluation_id: null,
+        path: objPath,
+        label,
+        size_bytes: data.length,
+        mime_type: "application/pdf",
+        uploaded_by: process.env.UPLOADED_BY || "dirk.paeshuys@gmail.com",
+      }),
+    });
+    if (!ins.ok) {
+      const msg = (await ins.text()).slice(0, 300);
+      await fetch(`${cfg.SUPABASE_URL}/storage/v1/object/documents/${objPath}`, {
+        method: "DELETE",
+        headers: { apikey: cfg.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}` },
+      });
+      throw new Error(`Metadata insert failed HTTP ${ins.status}: ${msg} (storage object rolled back)`);
+    }
+    out({ client: client.name, attached: await ins.json() });
+  } else if (cmd === "pending") {
+    // pending [days=30] : evaluations from the last N days whose client has no EEVA report attached
+    const days = Number(a1 || 30);
+    const since = new Date(Date.now() - days * 86400000).toISOString();
+    const { body: evals } = await rest(cfg, `evaluations?select=id,client_id,submitted_at,score_raw,score_percent,current_situation,clients(name,email,country,age,gender)&submitted_at=gte.${since}&order=submitted_at.desc`);
+    const { body: atts } = await rest(cfg, `attachments?select=client_id,path,label&path=like.*/eevas/*`);
+    const done = new Set(atts.map((a) => a.client_id));
+    const pending = evals.filter((e) => !done.has(e.client_id)).map((e) => ({
+      evaluation_id: e.id,
+      client_id: e.client_id,
+      name: e.clients && e.clients.name,
+      email: e.clients && e.clients.email,
+      submitted_at: e.submitted_at,
+      score_raw: e.score_raw,
+      score_percent: e.score_percent,
+      has_situation_text: !!(e.current_situation && e.current_situation.trim().length > 20),
+    }));
+    out({ since, pending_count: pending.length, pending });
+  } else if (cmd === "sign") {
+    // sign <storage path> : create a 60-second signed URL and report how the file would be served
+    const r = await fetch(`${cfg.SUPABASE_URL}/storage/v1/object/sign/documents/${a1}`, {
+      method: "POST",
+      headers: { apikey: cfg.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ expiresIn: 60 }),
+    });
+    if (!r.ok) throw new Error(`Sign failed HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
+    const signed = `${cfg.SUPABASE_URL}/storage/v1${(await r.json()).signedURL}`;
+    const head = await fetch(signed, { method: "HEAD" });
+    out({ status: head.status, contentType: head.headers.get("content-type"), contentDisposition: head.headers.get("content-disposition"), contentLength: head.headers.get("content-length") });
+  } else if (cmd === "client") {
+    const { body: clients } = await rest(cfg, `clients?select=*&name=ilike.*${encodeURIComponent(a1)}*`);
+    for (const c of clients) {
+      const { body: evals } = await rest(cfg, `evaluations?select=*&client_id=eq.${c.id}&order=created_at.desc`);
+      out({ client: c, evaluations: evals });
+    }
+    if (!clients.length) out({ message: `No client matching "${a1}"` });
+  } else {
+    console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 12).join("\n"));
+  }
+}
+
+main().catch((e) => { console.error(e.message); process.exit(1); });

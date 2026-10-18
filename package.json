@@ -1,0 +1,14 @@
+{
+  "name": "eeva-report",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Emotional evaluation report generation for New Paradigm Trauma Institute",
+  "scripts": {
+    "build": "node build-report.js",
+    "pdf": "node convert-pdf.js",
+    "db": "node supabase-db.js"
+  },
+  "dependencies": {
+    "docx": "^9.5.0"
+  }
+}

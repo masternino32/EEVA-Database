@@ -1,0 +1,14 @@
+# Secrets
+.env
+.env.*
+
+# Client documents contain health data and must never be committed
+PDF Report Files/
+Word Report Files/
+reports/
+
+# Dependencies and local artefacts
+node_modules/
+*.log
+~$*
+.vscode/

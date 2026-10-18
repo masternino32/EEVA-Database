@@ -1,0 +1,55 @@
+{
+  "client": "Example Client",
+  "subtitle": [
+    "Proposed residential care | 10-23 January 2027",
+    "New Paradigm Trauma Retreat, Chiang Mai, Thailand"
+  ],
+  "preparedBy": "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist and Program Director",
+  "intro": "Alex, your assessment reflects a period of sustained pressure at work alongside the recent loss of a close friend. A proposed 14-day residential program can offer protected time to settle your nervous system and begin carefully paced therapeutic work. Admission and the final treatment plan should be confirmed through a suitability consultation.",
+  "scores": {
+    "rows": [["Despair", 3], ["Fear", 2], ["Not Being Present", 2], ["Uncertainty", 1]],
+    "total": 8
+  },
+  "sections": [
+    {
+      "heading": "Emotional Load Score",
+      "blocks": [
+        "Your Emotional Load Score is 8 out of 45. Using (8 ÷ 45) × 100, this equals 17.8%. The ideal emotional load within this assessment framework is below 15%. Your result suggests a mild to moderate current emotional burden. It is an assessment indicator, not a psychiatric diagnosis or a stand-alone measure of clinical severity.",
+        "This emotional load may make it harder to switch off after work, to concentrate, and to recover after stressful days. These are areas to explore with you, rather than conclusions about how you function every day.",
+        { "type": "scores" }
+      ]
+    },
+    { "heading": "Presenting Emotional Themes", "blocks": ["Summary of the main emotional concerns identified from the assessment, written to the client."] },
+    { "heading": "Core Emotional Challenges", "blocks": ["Underlying emotional patterns contributing to distress, framed as possibilities to check with the client."] },
+    { "heading": "Emotional Resolutions Sought", "blocks": ["The emotional outcomes the client hopes to achieve."] },
+    { "heading": "Recurring Patterns", "blocks": ["Recurring emotional, behavioural, and thinking patterns."] },
+    { "heading": "What to Expect During a 14-Day Intensive Care Program", "blocks": ["Private, structured, one-to-one environment with no group therapy. Focus on nervous system regulation, trauma processing, emotional recovery, and practical integration. Treatment adjusted daily according to progress."] },
+    { "heading": "Daily Therapeutic Modalities Include", "blocks": ["EMDR, CBT, NLP, mindfulness, breathwork, somatic therapy, meditation, yoga, daily morning walks, swimming, ice baths, martial arts, Thai massage, educational workshops, and one-to-one psychotherapy sessions five days per week, tailored to the client."] },
+    { "heading": "Environment", "blocks": ["Safe, private, peaceful setting with individual treatment, healthy meals, structured daily routines, and supportive care."] },
+    { "heading": "Typical Reactions", "blocks": ["Emotional processing may temporarily increase emotions, fatigue, vivid dreams, physical release, or emotional sensitivity before greater calmness, clarity, emotional regulation, and resilience develop."] },
+    {
+      "heading": "What to Expect",
+      "blocks": [
+        "The following phases provide a flexible structure for your two weeks. They are proposed time windows, not deadlines for emotional change.",
+        { "type": "phase", "label": "Days 1-3 | 10-12 January", "text": "Assessment and stabilisation." },
+        { "type": "phase", "label": "Days 4-7 | 13-16 January", "text": "Focused therapeutic work." },
+        { "type": "phase", "label": "Days 8-11 | 17-20 January", "text": "Consolidation and everyday application." },
+        { "type": "phase", "label": "Days 12-14 | 21-23 January", "text": "Integration and transition." }
+      ]
+    },
+    { "heading": "Recommendations", "blocks": ["The recommended option and why it fits the client's needs, plus alternatives and aftercare. No particular score reduction or recovery outcome is guaranteed."] }
+  ],
+  "clientInfo": [
+    ["Name", "Example Client"],
+    ["Age", "40"],
+    ["Gender", "Not stated"],
+    ["Country", "Netherlands"],
+    ["Proposed program", "14-day intensive residential care"],
+    ["Proposed dates", "10-23 January 2027"],
+    ["Presenting concerns", "Work pressure; recent bereavement; difficulty concentrating."],
+    ["Current medication", "None reported."],
+    ["Psychiatric diagnosis", "None reported."],
+    ["Psychiatric hospital admission", "None reported."],
+    ["Relevant history", "As described in the assessment."]
+  ]
+}
