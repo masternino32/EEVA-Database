@@ -222,7 +222,9 @@ async function main() {
     const { body: clients } = await rest(cfg, `clients?select=*&name=ilike.*${encodeURIComponent(a1)}*`);
     for (const c of clients) {
       const { body: evals } = await rest(cfg, `evaluations?select=*&client_id=eq.${c.id}&order=submitted_at.desc`);
-      out({ client: c, evaluations: evals });
+      // Contact-form inquiries; the table may not exist yet in older setups.
+      const inquiries = await rest(cfg, `inquiries?select=*&client_id=eq.${c.id}&order=submitted_at.desc`).then((r) => r.body, () => []);
+      out({ client: c, evaluations: evals, inquiries });
     }
     if (!clients.length) out({ message: `No client matching "${a1}"` });
   } else {

@@ -1,7 +1,7 @@
-// Prepare OnePageCRM contact records from EEVA intake submissions.
+// Prepare OnePageCRM contact records from EEVA intakes and website contact-form inquiries.
 //
 // Usage:
-//   node crm.js pending [days=7]     one CRM-ready record per client with an evaluation in the last N days
+//   node crm.js pending [days=7]     one CRM-ready record per client with an evaluation or inquiry in the last N days
 //   node crm.js payload <client>     the CRM-ready record for one client (name, as in supabase-db.js client)
 //   node crm.js price <country>      show the converted program price for a country
 //
@@ -117,16 +117,40 @@ function treatmentFor(seeking) {
 
 const titleCase = (s) => String(s || "").trim().split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
-function testReason(client, ev) {
+function testReason(client, sub) {
   const email = String(client.email || "").toLowerCase().trim();
   if (TEST_EMAILS.includes(email)) return `test email ${email}`;
   if (TEST_NAMES.includes(String(client.name || "").toLowerCase().trim())) return `test name "${client.name}"`;
-  const sit = String(ev.current_situation || "").trim();
+  const sit = String(sub.situation || "").trim();
   if (/^(test|testing|hhh+|asdf+|x+|abc|aaa+|\.+)$/i.test(sit)) return `placeholder situation text "${sit}"`;
   return null;
 }
 
-async function recordFor(client, ev) {
+// Submissions come from two forms: EEVA intakes (evaluations) and the website contact form (inquiries).
+// Both are normalised to { source, id, client_id, submitted_at, seeking, situation, extra, clients }.
+const CLIENT_COLS = "clients(id,name,email,phone,country,age,gender)";
+const fromEvaluation = (ev) => ({
+  source: "eeva", id: ev.id, client_id: ev.client_id, submitted_at: ev.submitted_at,
+  seeking: ev.seeking_treatment_for, situation: ev.current_situation, extra: [], clients: ev.clients,
+});
+const fromInquiry = (iq) => ({
+  source: "contact", id: iq.id, client_id: iq.client_id, submitted_at: iq.submitted_at,
+  seeking: iq.reason, situation: iq.reason, clients: iq.clients,
+  extra: [["City", iq.city], ["Preferred Contact", iq.preferred_contact], ["Preferred Timing", iq.preferred_timing]],
+});
+const SOURCE_LABEL = { eeva: "EEVA intake", contact: "Website contact form" };
+
+// Inquiries live in a newer table; until it exists, carry on with evaluations only.
+async function inquiries(cfg, query) {
+  try {
+    return { rows: (await rest(cfg, `inquiries?select=id,client_id,submitted_at,reason,city,preferred_contact,preferred_timing${query}`)).body, note: null };
+  } catch (e) {
+    if (/HTTP 404|PGRST205|42P01/.test(e.message)) return { rows: [], note: "inquiries table not found in Supabase, contact-form submissions skipped" };
+    throw e;
+  }
+}
+
+async function recordFor(client, sub) {
   const info = countryInfo(client.country);
   const full = titleCase(client.name);
   const parts = full.split(" ");
@@ -134,10 +158,10 @@ async function recordFor(client, ev) {
   const last = parts.length > 1 ? parts[parts.length - 1] : parts[0];
   const phone = phoneE164(client.phone, info);
   const price = await priceFor(client.country);
-  const inquiryDate = new Date(ev.submitted_at).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+  const inquiryDate = new Date(sub.submitted_at).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
   const background = [
     ["Name", full], ["Email", client.email], ["Phone", phone || client.phone], ["Country", client.country],
-    ["Age", client.age], ["Gender", client.gender],
+    ["Age", client.age], ["Gender", client.gender], ...sub.extra, ["Source", SOURCE_LABEL[sub.source]],
   ].filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "").map(([k, v]) => `${k}\t${v}`).join("\n");
   const contact = {
     first_name: first,
@@ -149,14 +173,17 @@ async function recordFor(client, ev) {
     custom_fields: {
       "Inquiry Date": inquiryDate,
       "Arrival Date": PROPOSED_ARRIVAL,
-      "Treatment For": treatmentFor(ev.seeking_treatment_for),
+      "Treatment For": treatmentFor(sub.seeking),
       "Treatment Price": price.text,
     },
   };
   if (info) contact.country_code = info[0];
   if (!first) delete contact.first_name;
-  return { client_id: client.id, evaluation_id: ev.id, submitted_at: ev.submitted_at, name: full, skip: testReason(client, ev), price, contact };
+  const ids = sub.source === "eeva" ? { evaluation_id: sub.id } : { inquiry_id: sub.id };
+  return { client_id: client.id, source: sub.source, ...ids, submitted_at: sub.submitted_at, name: full, skip: testReason(client, sub), price, contact };
 }
+
+const newestFirst = (a, b) => new Date(b.submitted_at) - new Date(a.submitted_at);
 
 async function main() {
   const [cmd, a1] = process.argv.slice(2);
@@ -169,21 +196,26 @@ async function main() {
   if (cmd === "pending") {
     const days = Number(a1 || 7);
     const since = new Date(Date.now() - days * 86400000).toISOString();
-    const { body: evals } = await rest(cfg, `evaluations?select=id,client_id,submitted_at,seeking_treatment_for,current_situation,clients(id,name,email,phone,country,age,gender)&submitted_at=gte.${since}&order=submitted_at.desc`);
+    const { body: evals } = await rest(cfg, `evaluations?select=id,client_id,submitted_at,seeking_treatment_for,current_situation,${CLIENT_COLS}&submitted_at=gte.${since}&order=submitted_at.desc`);
+    const inq = await inquiries(cfg, `,${CLIENT_COLS}&submitted_at=gte.${since}&order=submitted_at.desc`);
+    const subs = [...evals.map(fromEvaluation), ...inq.rows.map(fromInquiry)].sort(newestFirst);
     const seen = new Set();
     const records = [];
-    for (const ev of evals) {
-      if (!ev.clients || seen.has(ev.client_id)) continue;
-      seen.add(ev.client_id);
-      records.push(await recordFor(ev.clients, ev));
+    for (const sub of subs) {
+      if (!sub.clients || seen.has(sub.client_id)) continue;
+      seen.add(sub.client_id);
+      records.push(await recordFor(sub.clients, sub));
     }
-    out({ since, count: records.length, to_sync: records.filter((r) => !r.skip).length, records });
+    out({ since, count: records.length, to_sync: records.filter((r) => !r.skip).length, notes: inq.note ? [inq.note] : [], records });
   } else if (cmd === "payload") {
     const { body: clients } = await rest(cfg, `clients?select=id,name,email,phone,country,age,gender&name=ilike.*${encodeURIComponent(a1)}*`);
     if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${a1}"`, matches: clients.map((c) => c.name) }); process.exit(1); }
-    const { body: evals } = await rest(cfg, `evaluations?select=id,client_id,submitted_at,seeking_treatment_for,current_situation&client_id=eq.${clients[0].id}&order=submitted_at.desc&limit=1`);
-    if (!evals.length) { out({ error: "Client has no evaluation" }); process.exit(1); }
-    out(await recordFor(clients[0], evals[0]));
+    const latest = `&client_id=eq.${clients[0].id}&order=submitted_at.desc&limit=1`;
+    const { body: evals } = await rest(cfg, `evaluations?select=id,client_id,submitted_at,seeking_treatment_for,current_situation${latest}`);
+    const inq = await inquiries(cfg, latest);
+    const subs = [...evals.map(fromEvaluation), ...inq.rows.map(fromInquiry)].sort(newestFirst);
+    if (!subs.length) { out({ error: "Client has no evaluation or inquiry" }); process.exit(1); }
+    out(await recordFor(clients[0], subs[0]));
   } else {
     console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 14).join("\n"));
   }
