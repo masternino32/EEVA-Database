@@ -21,7 +21,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 2. **Write the content** as a JSON file following `report-content.example.json`, obeying every rule in CLAUDE.md. Keep the twelve headings in order. Client information goes in `clientInfo`, which the builder always places on its own last page.
 3. **Build the Word file.** `node build-report.js reports/<name>.json "reports/EEVA - <Name> - <DDMMYYYY>.docx"`. The builder refuses content that contains an em dash.
 4. **Make the PDF.** `node convert-pdf.js "reports/<file>.docx" "reports/<file>.pdf"`. Uses LibreOffice when present, otherwise Microsoft Word on Windows.
-5. **Attach to the client record.** `node supabase-db.js attach "<client name>" eevas "reports/<file>.pdf"`. This uploads to the `documents` bucket and inserts the `attachments` row the dashboard reads. Only final, human-reviewed reports are attached. Drafts are never attached to a client record.
+5. **Attach to the client record.** `node supabase-db.js attach "<client name>" eevas "reports/<file>.pdf"`. This uploads to the `documents` bucket and inserts the `attachments` row the dashboard reads. Word files (`.docx`, `.doc`) can be attached the same way and are stored with the correct Word content type; other file types are refused. Only final, human-reviewed reports are attached. Drafts are never attached to a client record.
 
 ## Drafts
 

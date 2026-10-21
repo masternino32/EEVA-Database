@@ -5,8 +5,8 @@
 //   node supabase-db.js columns <table>        column names (from one row)
 //   node supabase-db.js get <table> [params]   raw REST query, e.g. get clients "select=id,name&limit=5"
 //   node supabase-db.js client <name>          find a client by name and show their evaluations
-//   node supabase-db.js attach <name> <category> <pdf> [label prefix]   upload a FINAL report to the client record
-//   node supabase-db.js draft <name> <pdf> [json] [email.md]  store a DRAFT in the private drafts/ folder (never on the client record)
+//   node supabase-db.js attach <name> <category> <file> [label prefix]  upload a FINAL report (.pdf, .docx or .doc) to the client record
+//   node supabase-db.js draft <name> <pdf> [docx] [json] [email.md]  store a DRAFT in the private drafts/ folder (never on the client record)
 //   node supabase-db.js drafts                     list stored drafts
 //   node supabase-db.js draft-pull <name> [dir]    download a client's draft files for local review (default dir: reports/)
 //
@@ -16,6 +16,16 @@
 
 const fs = require("fs");
 const path = require("path");
+
+const TYPES = {
+  ".pdf": "application/pdf",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".doc": "application/msword",
+  ".json": "application/json",
+  ".md": "text/markdown",
+};
+// Only documents go on a client record; JSON and email drafts stay in the drafts folder.
+const ATTACHABLE = [".pdf", ".docx", ".doc"];
 
 function loadConfig() {
   const envPath = path.join(__dirname, ".env");
@@ -105,6 +115,9 @@ async function main() {
     // Mirrors the dashboard's uploadFiles(): storage object + attachments row.
     // A label prefix such as "DRAFT" is shown in the dashboard ahead of the filename.
     const [, name, category, filePath, labelPrefix] = process.argv.slice(2);
+    const ext = path.extname(filePath || "").toLowerCase();
+    if (!ATTACHABLE.includes(ext)) throw new Error(`Unsupported attachment type: ${filePath}. Use one of ${ATTACHABLE.join(", ")}.`);
+    const type = TYPES[ext];
     const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(name)}*`);
     if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${name}"`, matches: clients }); process.exit(1); }
     const client = clients[0];
@@ -117,7 +130,7 @@ async function main() {
       headers: {
         apikey: cfg.SUPABASE_SERVICE_ROLE_KEY,
         Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/pdf",
+        "Content-Type": type,
         "x-upsert": "false",
       },
       body: data,
@@ -137,7 +150,7 @@ async function main() {
         path: objPath,
         label,
         size_bytes: data.length,
-        mime_type: "application/pdf",
+        mime_type: type,
         uploaded_by: process.env.UPLOADED_BY || "dirk.paeshuys@gmail.com",
       }),
     });
@@ -151,11 +164,10 @@ async function main() {
     }
     out({ client: client.name, attached: await ins.json() });
   } else if (cmd === "draft") {
-    // draft <client name> <pdf path> [json path] [email .md path]
+    // draft <client name> <pdf path> [docx path] [json path] [email .md path]
     // Stores a DRAFT report in the private drafts/ folder of the documents bucket for human review.
     // It never touches the attachments table, so nothing appears on the client record in the dashboard.
     const [, name, ...files] = process.argv.slice(2);
-    const TYPES = { ".pdf": "application/pdf", ".json": "application/json", ".md": "text/markdown", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
     const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(name)}*`);
     if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${name}"`, matches: clients }); process.exit(1); }
     const client = clients[0];
