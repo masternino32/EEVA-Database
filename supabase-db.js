@@ -6,6 +6,7 @@
 //   node supabase-db.js get <table> [params]   raw REST query, e.g. get clients "select=id,name&limit=5"
 //   node supabase-db.js client <name>          find a client by name and show their evaluations
 //   node supabase-db.js attach <name> <category> <file> [label prefix]  upload a FINAL report (.pdf, .docx or .doc) to the client record
+//   node supabase-db.js detach <attachment id>   remove one file from a client record (row and storage object)
 //   node supabase-db.js draft <name> <pdf> [docx] [json] [email.md]  store a DRAFT in the private drafts/ folder (never on the client record)
 //   node supabase-db.js drafts                     list stored drafts
 //   node supabase-db.js draft-pull <name> [dir]    download a client's draft files for local review (default dir: reports/)
@@ -163,6 +164,16 @@ async function main() {
       throw new Error(`Metadata insert failed HTTP ${ins.status}: ${msg} (storage object rolled back)`);
     }
     out({ client: client.name, attached: await ins.json() });
+  } else if (cmd === "detach") {
+    // detach <attachment id> : remove one file from a client record (attachments row and storage object), e.g. when replacing a revised report
+    const { body: rows } = await rest(cfg, `attachments?select=id,client_id,path,label&id=eq.${encodeURIComponent(a1 || "")}`);
+    if (rows.length !== 1) { out({ error: `No attachment with id "${a1}"` }); process.exit(1); }
+    const att = rows[0];
+    const auth = { apikey: cfg.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}` };
+    const del = await fetch(`${cfg.SUPABASE_URL}/rest/v1/attachments?id=eq.${att.id}`, { method: "DELETE", headers: auth });
+    if (!del.ok) throw new Error(`Metadata delete failed HTTP ${del.status}: ${(await del.text()).slice(0, 300)}`);
+    const st = await fetch(`${cfg.SUPABASE_URL}/storage/v1/object/documents/${att.path}`, { method: "DELETE", headers: auth });
+    out({ detached: att, storage_deleted: st.ok });
   } else if (cmd === "draft") {
     // draft <client name> <pdf path> [docx path] [json path] [email .md path]
     // Stores a DRAFT report in the private drafts/ folder of the documents bucket for human review.
