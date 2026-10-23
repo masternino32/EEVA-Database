@@ -45,6 +45,10 @@ All new reports and emails go in `reports/`. `PDF Report Files/` and `Word Repor
 
 Status: the cloud environment is configured (`SUPABASE_SERVICE_ROLE_KEY` as an environment variable, `ftctubuplwqsdypthnyw.supabase.co` in allowed domains, setup script running `npm install` inside the clone) and the routine is live, running hourly at minute 20, as of 18 October 2026.
 
+## WhatsApp
+
+`wa.js` prepares WhatsApp messages but never sends them. `node wa.js link "<client name>" "<message>"` prints a WhatsApp Desktop link and a wa.me link for the client's number from Supabase. `node wa.js open "<client name>" "<message>" [file]` opens the chat in WhatsApp Desktop with the message typed in, and shows the file selected in Explorer so it can be dragged into the chat. Checking the message and pressing send is always done by hand.
+
 ## CRM sync
 
 Every real intake and every website contact-form inquiry should have a contact in OnePageCRM. `node crm.js pending 7` reads the last 7 days of evaluations (EEVA intakes) and inquiries (contact-form.html) and prints one CRM-ready record per client, based on their latest submission: name, email, phone in international format, country code, status `Inquiries`, a background with the basic details (name, email, phone, country, age, gender, plus city, preferred contact and preferred timing for contact-form inquiries, and a `Source` line saying which form it came from), and the custom fields Inquiry Date (the submission date in Bangkok time), Arrival Date (2027-01-10), Treatment For (mapped from the intake or the inquiry's reason) and Treatment Price. Each record has `source` (`eeva` or `contact`) and an `evaluation_id` or `inquiry_id`. Test submissions carry a `skip` reason. `node crm.js payload "<client name>"` prints the record for one client.
