@@ -16,7 +16,9 @@
 //   "clientInfo": [["Name", "Full Name"], ["Age", "54"]]
 // }
 // Blocks are plain strings (paragraphs) or objects: {type:"scores"} inserts the category table,
-// {type:"phase", label, text} renders a bold label followed by text on one paragraph.
+// {type:"phase", label, text} renders a bold label followed by text on one paragraph,
+// {type:"table", columns:[...], widths:[...], rows:[[...]]} renders a general table (widths in DXA, total at most 9600).
+// Optional "title" replaces the default document title (used for progress reports).
 // The Client Information section is always rendered last, on its own page.
 
 const fs = require("fs");
@@ -78,9 +80,18 @@ const scoresTable = () => new Table({
   ],
 });
 const spacer = () => new Paragraph({ spacing: { after: 120 }, children: [] });
+const genericTable = ({ columns, widths, rows }) => new Table({
+  width: { size: widths.reduce((a, b) => a + b, 0), type: WidthType.DXA },
+  columnWidths: widths,
+  rows: [
+    new TableRow({ tableHeader: true, children: columns.map((c, i) => cell(c, widths[i], true, "E8EEF5")) }),
+    ...rows.map((r) => new TableRow({ cantSplit: true, children: r.map((v, i) => cell(v, widths[i])) })),
+  ],
+});
 
+const TITLE = spec.title || "Emotional Evaluation and Treatment Plan";
 const children = [
-  new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: "Emotional Evaluation and Treatment Plan", font: FONT, size: 36, bold: true, color: "1F3A5F" })] }),
+  new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: TITLE, font: FONT, size: 36, bold: true, color: "1F3A5F" })] }),
   new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: CLIENT, font: FONT, size: 28, bold: true, color: "222222" })] }),
   ...(spec.subtitle || []).map((s) => p(s, { color: "444444" })),
   p(spec.preparedBy || "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist and Program Director", { color: "444444" }),
@@ -93,6 +104,7 @@ for (const section of spec.sections) {
     if (typeof block === "string") children.push(p(block));
     else if (block.type === "scores") { children.push(scoresTable()); children.push(spacer()); }
     else if (block.type === "phase") children.push(labelled(block.label, block.text, 200));
+    else if (block.type === "table") { children.push(genericTable(block)); children.push(spacer()); }
     else throw new Error(`Unknown block type: ${JSON.stringify(block)}`);
   }
 }
@@ -103,7 +115,7 @@ for (const [label, text] of spec.clientInfo) children.push(labelled(label, text,
 
 const doc = new Document({
   creator: "Dirk J. Lambert",
-  title: "Emotional Evaluation and Treatment Plan - " + CLIENT,
+  title: TITLE + " - " + CLIENT,
   styles: { default: { document: { run: { font: FONT, size: 22 } } } },
   sections: [{
     properties: { page: { margin: { top: 1300, bottom: 1200, left: 1300, right: 1300 } } },
