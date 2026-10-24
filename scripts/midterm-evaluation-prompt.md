@@ -15,13 +15,13 @@ You are writing as Dirk J. Lambert, Trauma/EMDR Specialist and Program Director 
 Collect all the data before you write anything. Search for the client's first name, surname, email address and likely spelling variants (for example Agopian and Agopyan), because file names are not consistent.
 
 1. **Supabase (EEVA intakes and session records).**
-   - `node supabase-db.js client <surname>` for the client record and every EEVA evaluation (scores, selected statements by category, current situation, medication, diagnosis, looking_for).
-   - `node supabase-db.js get client_progress "client_id=eq.<id>&order=submitted_at"` for the score trajectory (score_percent, prev_percent, change_pct, baseline_percent, change_from_baseline, session_number).
-   - `node supabase-db.js get therapy_sessions "client_id=eq.<id>&order=session_date"` for session dates, subjects and notes.
-   - `node supabase-db.js get treatment_notes "client_id=eq.<id>&order=created_at"` for treatment notes.
-   - `node supabase-db.js get cbt_progress "client_id=eq.<id>"` for CBT checklist progress.
-   - `node supabase-db.js get attachments "client_id=eq.<id>"` to see which files are on the record (EEVAs, session reports, medical).
-2. **Session summaries on disk.** Search `PDF Report Files/`, `Word Report Files/` and `reports/` for every file with the client's name, including session summaries, meeting notes, EEVA reports, letters and emails. Read each one fully.
+   - `node scripts/supabase-db.js client <surname>` for the client record and every EEVA evaluation (scores, selected statements by category, current situation, medication, diagnosis, looking_for).
+   - `node scripts/supabase-db.js get client_progress "client_id=eq.<id>&order=submitted_at"` for the score trajectory (score_percent, prev_percent, change_pct, baseline_percent, change_from_baseline, session_number).
+   - `node scripts/supabase-db.js get therapy_sessions "client_id=eq.<id>&order=session_date"` for session dates, subjects and notes.
+   - `node scripts/supabase-db.js get treatment_notes "client_id=eq.<id>&order=created_at"` for treatment notes.
+   - `node scripts/supabase-db.js get cbt_progress "client_id=eq.<id>"` for CBT checklist progress.
+   - `node scripts/supabase-db.js get attachments "client_id=eq.<id>"` to see which files are on the record (EEVAs, session reports, medical).
+2. **Session summaries on disk.** Search `reports/` and `PDF Report Files/` for every file with the client's name, including session summaries, meeting notes, EEVA reports, letters and emails. Read each one fully.
 3. **Emails.** Use the Gmail connector on dirk.lambert@newparadigm.org. Search for messages from and to the client's address and name, and read the full threads, including what the client wrote between sessions about symptoms, insights, setbacks and proposed targets. Ignore messages that only contain session links.
 4. **OnePageCRM.** Find the contact and read its status, background, notes, calls, meetings and actions.
 5. **Google Calendar.** Search the whole calendar history, from the first contact date to today plus any booked future sessions, for every event with the client's first name, surname or email address (titles such as "<First Name> Session", "<First Name> EMDR" or "<Full Name>", and events where the client is an attendee). Use a full-text search rather than a short date window, and page through all results. Record each event's date, start and end time, title and status. Leave out cancelled events, but list them separately.
@@ -151,7 +151,7 @@ Leave out of the client version: source references in brackets, the Sources Revi
 
 ## Step 4. Save and report back
 
-- Write each report as a content JSON in `reports/` for `build-report.js` (set `"title"` to "Mid-Term Progress Report (Clinical)" or "Your Progress Summary", and use `{ "type": "table" }` blocks for the tables; see `reports/obyrne-progress-clinical.json` and `reports/obyrne-progress-client.json` as examples). Build the Word file with `node build-report.js`, then the PDF with `node convert-pdf.js`. Name them `Progress Report - <Client Name> - <DDMMYYYY>` (clinical) and `Progress Summary - <Client Name> - <DDMMYYYY>` (client version), with today's date. Render the PDF pages and check the layout before reporting back.
+- Write each report as a content JSON in `reports/` for `scripts/build-report.js` (set `"title"` to "Mid-Term Progress Report (Clinical)" or "Your Progress Summary", and use `{ "type": "table" }` blocks for the tables; see `reports/obyrne-progress-clinical.json` and `reports/obyrne-progress-client.json` as examples). Build the Word file with `node scripts/build-report.js`, then the PDF with `node scripts/convert-pdf.js`. Name them `Progress Report - <Client Name> - <DDMMYYYY>` (clinical) and `Progress Summary - <Client Name> - <DDMMYYYY>` (client version), with today's date. Render the PDF pages and check the layout before reporting back.
 - Do not attach either file to the Supabase client record, do not email them, and do not write anything to the CRM. Dirk reviews both first. Client emails are sent by Dirk from OnePageCRM, so never create a Gmail draft for the client version.
 - Do not commit anything under `reports/` to git.
 - In the chat, reply with both file paths, a three to five line summary of the findings, a list of any sources that could not be reached or data that is missing, and any safety point that needs Dirk's personal follow-up.

@@ -1,6 +1,6 @@
 // Convert a .docx to .pdf.
 //
-// Usage: node convert-pdf.js <input.docx> <output.pdf>
+// Usage: node scripts/convert-pdf.js <input.docx> <output.pdf>
 //
 // Tries LibreOffice first (available in the cloud sandbox and on most Linux machines),
 // then falls back to Microsoft Word through COM automation on Windows.
@@ -11,7 +11,7 @@ const { spawnSync } = require("child_process");
 
 const [input, output] = process.argv.slice(2);
 if (!input || !output) {
-  console.error("Usage: node convert-pdf.js <input.docx> <output.pdf>");
+  console.error("Usage: node scripts/convert-pdf.js <input.docx> <output.pdf>");
   process.exit(1);
 }
 const absIn = path.resolve(input);

@@ -1,15 +1,15 @@
 // Supabase query helper for the EEVA Report project.
 // Usage:
-//   node supabase-db.js tables                 list tables exposed by the REST API
-//   node supabase-db.js count <table>          row count
-//   node supabase-db.js columns <table>        column names (from one row)
-//   node supabase-db.js get <table> [params]   raw REST query, e.g. get clients "select=id,name&limit=5"
-//   node supabase-db.js client <name>          find a client by name and show their evaluations
-//   node supabase-db.js attach <name> <category> <file> [label prefix]  upload a FINAL report (.pdf, .docx or .doc) to the client record
-//   node supabase-db.js detach <attachment id>   remove one file from a client record (row and storage object)
-//   node supabase-db.js draft <name> <pdf> [docx] [json] [email.md]  store a DRAFT in the private drafts/ folder (never on the client record)
-//   node supabase-db.js drafts                     list stored drafts
-//   node supabase-db.js draft-pull <name> [dir]    download a client's draft files for local review (default dir: reports/)
+//   node scripts/supabase-db.js tables                 list tables exposed by the REST API
+//   node scripts/supabase-db.js count <table>          row count
+//   node scripts/supabase-db.js columns <table>        column names (from one row)
+//   node scripts/supabase-db.js get <table> [params]   raw REST query, e.g. get clients "select=id,name&limit=5"
+//   node scripts/supabase-db.js client <name>          find a client by name and show their evaluations
+//   node scripts/supabase-db.js attach <name> <category> <file> [label prefix]  upload a FINAL report (.pdf, .docx or .doc) to the client record
+//   node scripts/supabase-db.js detach <attachment id>   remove one file from a client record (row and storage object)
+//   node scripts/supabase-db.js draft <name> <pdf> [docx] [json] [email.md]  store a DRAFT in the private drafts/ folder (never on the client record)
+//   node scripts/supabase-db.js drafts                     list stored drafts
+//   node scripts/supabase-db.js draft-pull <name> [dir]    download a client's draft files for local review (default dir: reports/)
 //
 // Connection is read from .env in this folder (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).
 // If no .env exists, it falls back to the website config at ../../Websites/New Paradigm Claude/site/config.php.
@@ -29,7 +29,7 @@ const TYPES = {
 const ATTACHABLE = [".pdf", ".docx", ".doc"];
 
 function loadConfig() {
-  const envPath = path.join(__dirname, ".env");
+  const envPath = path.join(__dirname, "..", ".env");
   const cfg = {};
   if (process.env.SUPABASE_URL) cfg.SUPABASE_URL = process.env.SUPABASE_URL;
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) cfg.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -40,7 +40,7 @@ function loadConfig() {
     }
   }
   if (!cfg.SUPABASE_URL || !cfg.SUPABASE_SERVICE_ROLE_KEY) {
-    const phpPath = path.join(__dirname, "..", "..", "Websites", "New Paradigm Claude", "site", "config.php");
+    const phpPath = path.join(__dirname, "..", "..", "..", "Websites", "New Paradigm Claude", "site", "config.php");
     if (fs.existsSync(phpPath)) {
       const php = fs.readFileSync(phpPath, "utf8");
       const u = php.match(/SUPABASE_URL'[^\n]*\?:\s*'([^']+)'/);

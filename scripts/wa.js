@@ -3,8 +3,8 @@
 // and Dirk attaches the file and presses send himself.
 //
 // Usage:
-//   node wa.js link "<client name or +phone>" "<message>"          print the links
-//   node wa.js open "<client name or +phone>" "<message>" [file]   open the chat in WhatsApp Desktop with the message
+//   node scripts/wa.js link "<client name or +phone>" "<message>"          print the links
+//   node scripts/wa.js open "<client name or +phone>" "<message>" [file]   open the chat in WhatsApp Desktop with the message
 //                                                                   filled in, and show [file] selected in Explorer for drag and drop
 //
 // The phone number comes from the client record in Supabase (clients.phone), formatted like crm.js does.

@@ -1,9 +1,9 @@
 // Prepare OnePageCRM contact records from EEVA intakes and website contact-form inquiries.
 //
 // Usage:
-//   node crm.js pending [days=7]     one CRM-ready record per client with an evaluation or inquiry in the last N days
-//   node crm.js payload <client>     the CRM-ready record for one client (name, as in supabase-db.js client)
-//   node crm.js price <country>      show the converted program price for a country
+//   node scripts/crm.js pending [days=7]     one CRM-ready record per client with an evaluation or inquiry in the last N days
+//   node scripts/crm.js payload <client>     the CRM-ready record for one client (name, as in supabase-db.js client)
+//   node scripts/crm.js price <country>      show the converted program price for a country
 //
 // This script only READS from Supabase and prints JSON. Writing to OnePageCRM is done by whoever runs it
 // (the cloud routine or a Claude session) through the OnePageCRM connector, after checking by email that

@@ -1,8 +1,8 @@
 // Build an Emotional Evaluation report (.docx) from a JSON content file.
 //
-// Usage: node build-report.js <content.json> <output.docx>
+// Usage: node scripts/build-report.js <content.json> <output.docx>
 //
-// Content file shape (see report-content.example.json):
+// Content file shape (see scripts/report-content.example.json):
 // {
 //   "client": "Full Name",
 //   "subtitle": ["Proposed residential care | 10-23 January 2027", "New Paradigm Mental Health Retreat, Chiang Mai, Thailand"],
@@ -29,7 +29,7 @@ const {
 
 const [contentPath, outPath] = process.argv.slice(2);
 if (!contentPath || !outPath) {
-  console.error("Usage: node build-report.js <content.json> <output.docx>");
+  console.error("Usage: node scripts/build-report.js <content.json> <output.docx>");
   process.exit(1);
 }
 const spec = JSON.parse(fs.readFileSync(contentPath, "utf8"));

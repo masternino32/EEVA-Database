@@ -4,9 +4,9 @@
   "private": true,
   "description": "Emotional evaluation report generation for New Paradigm Mental Health Retreat",
   "scripts": {
-    "build": "node build-report.js",
-    "pdf": "node convert-pdf.js",
-    "db": "node supabase-db.js"
+    "build": "node scripts/build-report.js",
+    "pdf": "node scripts/convert-pdf.js",
+    "db": "node scripts/supabase-db.js"
   },
   "dependencies": {
     "docx": "^9.5.0"

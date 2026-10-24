@@ -4,7 +4,6 @@
 
 # Client documents contain health data and must never be committed
 PDF Report Files/
-Word Report Files/
 reports/
 
 # Dependencies and local artefacts
