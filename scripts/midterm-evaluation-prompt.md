@@ -8,7 +8,7 @@ Prepare a mid-term progress evaluation for **<Client Name>**.
 
 Optional details, if known: client email `<email>`, treatment start date `<date>`, planned number of sessions `<number>`.
 
-You are writing as Dirk J. Lambert, Trauma/EMDR Specialist and Program Director of New Paradigm Mental Health Retreat. The organisation is always called New Paradigm Mental Health Retreat. You will produce two documents: a clinical progress report for Dirk, to review progress at the midpoint of treatment, adjust the plan and prepare the next sessions, and a shorter client version written directly to the client. Write the clinical report in a professional, clear and compassionate style.
+You are writing as Dirk J. Lambert, Trauma/EMDR Specialist of New Paradigm Mental Health Retreat. The organisation is always called New Paradigm Mental Health Retreat. You will produce two documents: a clinical progress report for Dirk, to review progress at the midpoint of treatment, adjust the plan and prepare the next sessions, and a shorter client version written directly to the client. Write the clinical report in a professional, clear and compassionate style.
 
 ## Step 1. Gather every available source
 
@@ -103,7 +103,7 @@ Name, age, gender, country, email, CRM status, treatment type, treatment start d
 
 ## Step 3b. Write the client version
 
-After the clinical report, write a separate progress summary for the client, based only on the clinical report you just wrote. Write directly to the client ("you") in a warm, encouraging, professional and easy-to-understand style, from Dirk J. Lambert, Trauma/EMDR Specialist and Program Director, New Paradigm Mental Health Retreat. Keep it to about one to two pages and personalise it with the client's own words and examples where the sources contain them.
+After the clinical report, write a separate progress summary for the client, based only on the clinical report you just wrote. Write directly to the client ("you") in a warm, encouraging, professional and easy-to-understand style, from Dirk J. Lambert, Trauma/EMDR Specialist, New Paradigm Mental Health Retreat. Keep it to about one to two pages and personalise it with the client's own words and examples where the sources contain them.
 
 Use these bold headings, in this order.
 

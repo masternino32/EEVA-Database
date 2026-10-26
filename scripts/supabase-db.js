@@ -212,14 +212,25 @@ async function main() {
     }
     out({ client: clients[0].name, saved });
   } else if (cmd === "pending") {
-    // pending [days=30] : evaluations from the last N days whose client has no EEVA report attached
+    // pending [days=30] : each client's latest evaluation from the last N days that has no EEVA report attached
+    // and no stored draft dated after it. prior_evaluations > 0 marks a follow-up from a returning client.
     const days = Number(a1 || 30);
     const since = new Date(Date.now() - days * 86400000).toISOString();
     const { body: evals } = await rest(cfg, `evaluations?select=id,client_id,submitted_at,score_raw,score_percent,current_situation,clients(name,email,country,age,gender)&submitted_at=gte.${since}&order=submitted_at.desc`);
-    const { body: atts } = await rest(cfg, `attachments?select=client_id,path,label&path=like.*/eevas/*`);
-    const done = new Set(atts.map((a) => a.client_id));
-    for (const d of await listDrafts(cfg)) done.add(d.client_id);
-    const pending = evals.filter((e) => !done.has(e.client_id)).map((e) => ({
+    const { body: atts } = await rest(cfg, `attachments?select=client_id,uploaded_at&path=like.*/eevas/*`);
+    const lastReport = {};
+    const note = (id, at) => { if (at && (!lastReport[id] || at > lastReport[id])) lastReport[id] = at; };
+    for (const a of atts) note(a.client_id, new Date(a.uploaded_at).toISOString());
+    for (const d of await listDrafts(cfg)) note(d.client_id, d.stored_at);
+    const latest = {};
+    for (const e of evals) if (!latest[e.client_id]) latest[e.client_id] = e;
+    const open = Object.values(latest).filter((e) => !lastReport[e.client_id] || lastReport[e.client_id] < new Date(e.submitted_at).toISOString());
+    const priors = {};
+    if (open.length) {
+      const { body: all } = await rest(cfg, `evaluations?select=client_id,submitted_at&client_id=in.(${open.map((e) => e.client_id).join(",")})`);
+      for (const e of open) priors[e.client_id] = all.filter((x) => x.client_id === e.client_id && x.submitted_at < e.submitted_at).length;
+    }
+    const pending = open.map((e) => ({
       evaluation_id: e.id,
       client_id: e.client_id,
       name: e.clients && e.clients.name,
@@ -227,6 +238,9 @@ async function main() {
       submitted_at: e.submitted_at,
       score_raw: e.score_raw,
       score_percent: e.score_percent,
+      prior_evaluations: priors[e.client_id],
+      follow_up: priors[e.client_id] > 0,
+      last_report_at: lastReport[e.client_id] || null,
       has_situation_text: !!(e.current_situation && e.current_situation.trim().length > 20),
     }));
     out({ since, pending_count: pending.length, pending });

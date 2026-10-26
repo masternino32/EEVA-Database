@@ -17,7 +17,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ## Workflow for one report
 
-1. **Find the intake.** `node scripts/supabase-db.js pending` lists evaluations whose client has no report attached yet. `node scripts/supabase-db.js client <surname>` prints the client record and all their evaluations, including the selected statements grouped by category and the free-text situation.
+1. **Find the intake.** `node scripts/supabase-db.js pending` lists each client's latest evaluation that has no EEVA report attached and no draft stored after it, with `prior_evaluations` and `follow_up` for returning clients. `node scripts/supabase-db.js client <surname>` prints the client record and all their evaluations, including the selected statements grouped by category and the free-text situation.
 2. **Write the content** as a JSON file following `scripts/report-content.example.json`, obeying every rule in CLAUDE.md. Keep the twelve headings in order. Client information goes in `clientInfo`, which the builder always places on its own last page.
 3. **Build the Word file.** `node scripts/build-report.js reports/<name>.json "reports/EEVA - <Name> - <DDMMYYYY>.docx"`. The builder refuses content that contains an em dash.
 4. **Make the PDF.** `node scripts/convert-pdf.js "reports/<file>.docx" "reports/<file>.pdf"`. Uses LibreOffice when present, otherwise Microsoft Word on Windows.
@@ -25,7 +25,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ## Drafts
 
-The cloud routine stores its drafts with `node scripts/supabase-db.js draft "<client name>" "<file>.pdf" "<file>.docx" <content>.json "<email>.md"`, which uploads to the private `drafts/` folder of the `documents` bucket and writes no `attachments` row, so nothing shows on the client record. `node scripts/supabase-db.js drafts` lists stored drafts and `node scripts/supabase-db.js draft-pull "<client name>"` downloads a client's draft PDF, Word file, JSON and email into `reports/` for review. To finalise, edit the JSON, rebuild with `build-report.js`, convert, and attach. `pending` excludes clients that already have a final report or a stored draft.
+The cloud routine stores its drafts with `node scripts/supabase-db.js draft "<client name>" "<file>.pdf" "<file>.docx" <content>.json "<email>.md"`, which uploads to the private `drafts/` folder of the `documents` bucket and writes no `attachments` row, so nothing shows on the client record. `node scripts/supabase-db.js drafts` lists stored drafts and `node scripts/supabase-db.js draft-pull "<client name>"` downloads a client's draft PDF, Word file, JSON and email into `reports/` for review. To finalise, edit the JSON, rebuild with `build-report.js`, convert, and attach. `pending` compares dates per evaluation, so a returning client's new evaluation shows up again even when an older report is attached. Returning clients get a compact follow-up report: see `scripts/follow-up-evaluation-prompt.md` and `scripts/followup-data.js`.
 
 6. **Write the client email** as `reports/Email - <Client Name> - <DDMMYYYY>.md`, following `scripts/email-template.md`.
 
@@ -41,9 +41,9 @@ All new reports and emails go in `reports/`. `PDF Report Files/` holds older rep
 
 ## Cloud automation
 
-`scripts/routine.json` is the definition of the hourly Claude Code cloud routine that drafts a report for every new intake and stores it in the drafts folder for human review. It never attaches anything to a client record. Submit it from a Claude Code session with the RemoteTrigger tool (action `create`). Prerequisites on claude.ai: the GitHub account connected with access to this repository, and `SUPABASE_URL` plus `SUPABASE_SERVICE_ROLE_KEY` set as environment variables on the cloud environment named in the file. Routines are managed at https://claude.ai/code/routines.
+`scripts/routine.json` is the definition of the twice-daily Claude Code cloud routine (08:00 and 20:00 Thailand time) that drafts a report for every new intake, a full first evaluation for new clients and a compact follow-up for returning clients, stores it in the drafts folder for human review, and emails Dirk a summary through the Gmail connector when something was drafted. It never attaches anything to a client record. Submit it from a Claude Code session with the RemoteTrigger tool (action `create`). Prerequisites on claude.ai: the GitHub account connected with access to this repository, and `SUPABASE_URL` plus `SUPABASE_SERVICE_ROLE_KEY` set as environment variables on the cloud environment named in the file. Routines are managed at https://claude.ai/code/routines.
 
-Status: the cloud environment is configured (`SUPABASE_SERVICE_ROLE_KEY` as an environment variable, `ftctubuplwqsdypthnyw.supabase.co` in allowed domains, setup script running `npm install` inside the clone) and the routine is live, running hourly at minute 20, as of 18 October 2026.
+Status: the cloud environment is configured (`SUPABASE_SERVICE_ROLE_KEY` as an environment variable, `ftctubuplwqsdypthnyw.supabase.co` in allowed domains, setup script running `npm install` inside the clone) and the routine is live. Since 26 October 2026 it runs twice daily, at 01:00 and 13:00 UTC.
 
 ## WhatsApp
 

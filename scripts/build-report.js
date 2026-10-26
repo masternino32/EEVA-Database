@@ -6,7 +6,7 @@
 // {
 //   "client": "Full Name",
 //   "subtitle": ["Proposed residential care | 10-23 January 2027", "New Paradigm Mental Health Retreat, Chiang Mai, Thailand"],
-//   "preparedBy": "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist and Program Director",
+//   "preparedBy": "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist",
 //   "intro": "Opening paragraph addressed to the client.",
 //   "scores": { "rows": [["Despair", 4], ["Fear", 2]], "total": 15 },
 //   "sections": [
@@ -17,14 +17,18 @@
 // }
 // Blocks are plain strings (paragraphs) or objects: {type:"scores"} inserts the category table,
 // {type:"phase", label, text} renders a bold label followed by text on one paragraph,
-// {type:"table", columns:[...], widths:[...], rows:[[...]]} renders a general table (widths in DXA, total at most 9600).
+// {type:"table", columns:[...], widths:[...], rows:[[...]]} renders a general table (widths in DXA, total at most 9600),
+// {type:"bullets", items:[...]} renders a bulleted list,
+// {type:"scorechart", points:[{label, score}], ideal:15} renders a horizontal bar chart of emotional load (score out of 45
+// as a percentage), newest first, with the first point highlighted as the latest and a dashed line at the ideal percentage.
 // Optional "title" replaces the default document title (used for progress reports).
+// A section may set "pageBreakBefore": true to start on a new page.
 // The Client Information section is always rendered last, on its own page.
 
 const fs = require("fs");
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType,
-  AlignmentType, Header, Footer, PageNumber, ShadingType, BorderStyle, PageBreak,
+  AlignmentType, Header, Footer, PageNumber, ShadingType, BorderStyle,
 } = require("docx");
 
 const [contentPath, outPath] = process.argv.slice(2);
@@ -48,9 +52,11 @@ const p = (text, opts = {}) => new Paragraph({
   spacing: { after: 200, line: 300 },
   children: [new TextRun({ text, font: FONT, size: opts.size || 22, bold: !!opts.bold, color: opts.color || "222222" })],
 });
-const h = (text) => new Paragraph({
+// The page break is a property of the heading, so a full preceding page never leaves a blank page behind.
+const h = (text, pageBreakBefore = false) => new Paragraph({
   spacing: { before: 240, after: 160 },
   keepNext: true,
+  pageBreakBefore,
   children: [new TextRun({ text, font: FONT, size: 26, bold: true, color: "1F3A5F" })],
 });
 const labelled = (label, text, after) => new Paragraph({
@@ -63,12 +69,12 @@ const labelled = (label, text, after) => new Paragraph({
 
 const border = { style: BorderStyle.SINGLE, size: 4, color: "BFBFBF" };
 const borders = { top: border, bottom: border, left: border, right: border };
-const cell = (text, w, bold = false, shade = null) => new TableCell({
+const cell = (text, w, bold = false, shade = null, keepNext = false) => new TableCell({
   width: { size: w, type: WidthType.DXA },
   borders,
   shading: shade ? { type: ShadingType.CLEAR, fill: shade, color: "auto" } : undefined,
   margins: { top: 80, bottom: 80, left: 120, right: 120 },
-  children: [new Paragraph({ spacing: { after: 0 }, children: [new TextRun({ text: String(text), font: FONT, size: 21, bold, color: "222222" })] })],
+  children: [new Paragraph({ spacing: { after: 0 }, keepNext, children: [new TextRun({ text: String(text), font: FONT, size: 21, bold, color: "222222" })] })],
 });
 const scoresTable = () => new Table({
   width: { size: 6000, type: WidthType.DXA },
@@ -84,9 +90,64 @@ const genericTable = ({ columns, widths, rows }) => new Table({
   width: { size: widths.reduce((a, b) => a + b, 0), type: WidthType.DXA },
   columnWidths: widths,
   rows: [
-    new TableRow({ tableHeader: true, children: columns.map((c, i) => cell(c, widths[i], true, "E8EEF5")) }),
-    ...rows.map((r) => new TableRow({ cantSplit: true, children: r.map((v, i) => cell(v, widths[i])) })),
+    new TableRow({ tableHeader: true, children: columns.map((c, i) => cell(c, widths[i], true, "E8EEF5", true)) }),
+    // Short tables (up to 12 rows) are kept on one page.
+    ...rows.map((r, n) => new TableRow({ cantSplit: true, children: r.map((v, i) => cell(v, widths[i], false, null, rows.length <= 12 && n < rows.length - 1)) })),
   ],
+});
+
+// Bar chart built from table cells, so it renders the same in Word and LibreOffice without an image.
+// The plot area is a grid of 100 one-percent columns between a label column and a value column.
+const scoreChart = ({ points, ideal = 15 }) => {
+  const LABEL_W = 2100, UNIT = 56, VALUE_W = 1500;
+  const none = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+  const gap = { style: BorderStyle.SINGLE, size: 18, color: "FFFFFF" };
+  const idealLine = { style: BorderStyle.DASHED, size: 8, color: "8A8A8A" };
+  const textCell = (text, w, opts = {}) => new TableCell({
+    width: { size: w, type: WidthType.DXA },
+    borders: { top: none, bottom: none, left: none, right: none },
+    margins: { top: 40, bottom: 40, left: 80, right: 80 },
+    columnSpan: opts.span,
+    children: [new Paragraph({ spacing: { after: 0 }, alignment: opts.align, children: [
+      new TextRun({ text, font: FONT, size: opts.size || 19, bold: !!opts.bold, color: opts.color || "222222" }),
+    ] })],
+  });
+  const segment = (from, to, fill) => new TableCell({
+    width: { size: (to - from) * UNIT, type: WidthType.DXA },
+    columnSpan: to - from,
+    borders: { top: gap, bottom: gap, left: from === ideal ? idealLine : none, right: none },
+    shading: fill ? { type: ShadingType.CLEAR, fill, color: "auto" } : undefined,
+    children: [new Paragraph({ spacing: { after: 0 }, children: [] })],
+  });
+  const rows = points.map(({ label, score }, i) => {
+    const latest = i === 0;
+    const pct = Math.max(0, Math.min(100, Math.round((score / 45) * 100)));
+    const fill = latest ? "1F3A5F" : "6F8BAE";
+    const stops = [...new Set([0, Math.min(pct, ideal), ideal, Math.max(pct, ideal), 100])].sort((a, b) => a - b);
+    const cells = [];
+    for (let k = 0; k < stops.length - 1; k++) cells.push(segment(stops[k], stops[k + 1], stops[k + 1] <= pct ? fill : null));
+    return new TableRow({ cantSplit: true, height: { value: 400, rule: "atLeast" }, children: [
+      textCell(label + (latest ? " (latest)" : ""), LABEL_W, { bold: latest }),
+      ...cells,
+      textCell(`${pct}% (${score}/45)`, VALUE_W, { bold: latest }),
+    ] });
+  });
+  const axis = (from, to, text, align) => textCell(text, (to - from) * UNIT, { span: to - from, size: 16, color: "666666", align });
+  rows.push(new TableRow({ children: [
+    textCell("", LABEL_W), axis(0, ideal, "0%"), axis(ideal, 50, `${ideal}% ideal`), axis(50, 75, "50%"),
+    axis(75, 100, "100%", AlignmentType.RIGHT), textCell("", VALUE_W),
+  ] }));
+  return new Table({
+    width: { size: LABEL_W + 100 * UNIT + VALUE_W, type: WidthType.DXA },
+    columnWidths: [LABEL_W, ...Array(100).fill(UNIT), VALUE_W],
+    borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none },
+    rows,
+  });
+};
+const bullet = (text, last) => new Paragraph({
+  bullet: { level: 0 },
+  spacing: { after: last ? 200 : 80, line: 300 },
+  children: [new TextRun({ text, font: FONT, size: 22, color: "222222" })],
 });
 
 const TITLE = spec.title || "Emotional Evaluation and Treatment Plan";
@@ -94,23 +155,24 @@ const children = [
   new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: TITLE, font: FONT, size: 36, bold: true, color: "1F3A5F" })] }),
   new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: CLIENT, font: FONT, size: 28, bold: true, color: "222222" })] }),
   ...(spec.subtitle || []).map((s) => p(s, { color: "444444" })),
-  p(spec.preparedBy || "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist and Program Director", { color: "444444" }),
+  p(spec.preparedBy || "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist", { color: "444444" }),
   p(spec.intro),
 ];
 
 for (const section of spec.sections) {
-  children.push(h(section.heading));
+  children.push(h(section.heading, !!section.pageBreakBefore));
   for (const block of section.blocks) {
     if (typeof block === "string") children.push(p(block));
     else if (block.type === "scores") { children.push(scoresTable()); children.push(spacer()); }
     else if (block.type === "phase") children.push(labelled(block.label, block.text, 200));
     else if (block.type === "table") { children.push(genericTable(block)); children.push(spacer()); }
+    else if (block.type === "scorechart") { children.push(scoreChart(block)); children.push(spacer()); }
+    else if (block.type === "bullets") block.items.forEach((item, i) => children.push(bullet(item, i === block.items.length - 1)));
     else throw new Error(`Unknown block type: ${JSON.stringify(block)}`);
   }
 }
 
-children.push(new Paragraph({ children: [new PageBreak()] }));
-children.push(h("Client Information"));
+children.push(h("Client Information", true));
 for (const [label, text] of spec.clientInfo) children.push(labelled(label, text, 120));
 
 const doc = new Document({
@@ -124,7 +186,7 @@ const doc = new Document({
       new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 18, color: "777777" }),
     ] })] }) },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [
-      new TextRun({ text: "New Paradigm Mental Health Retreat | Prepared by Dirk J. Lambert, Trauma/EMDR Specialist and Program Director", font: FONT, size: 16, color: "777777" }),
+      new TextRun({ text: "New Paradigm Mental Health Retreat | Prepared by Dirk J. Lambert, Trauma/EMDR Specialist", font: FONT, size: 16, color: "777777" }),
     ] })] }) },
     children,
   }],

@@ -1,4 +1,4 @@
-Subject: Your Emotional Evaluation and Treatment Plan from New Paradigm Mental Health Retreat
+Subject: Your Emotional Evaluation and Treatment Plan
 
 Dear <First name>,
 
@@ -19,5 +19,5 @@ I look forward to speaking with you.
 Warm regards,
 
 Dirk J. Lambert
-Trauma/EMDR Specialist and Program Director
+Trauma/EMDR Specialist
 New Paradigm Mental Health Retreat

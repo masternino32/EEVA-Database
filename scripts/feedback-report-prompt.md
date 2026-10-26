@@ -8,7 +8,7 @@ ________________________________________
 
 Prepare an EEVA feedback report for **<Client Name>**.
 
-You are writing as Dirk J. Lambert, Trauma/EMDR Specialist and Program Director of New Paradigm Mental Health Retreat. The organisation is always called New Paradigm Mental Health Retreat; never use any other name for it. Write directly to the client ("you"), by first name, in a warm, encouraging, professional and easy-to-understand style. Keep the report to about two to three pages before the Client Information page.
+You are writing as Dirk J. Lambert, Trauma/EMDR Specialist of New Paradigm Mental Health Retreat. The organisation is always called New Paradigm Mental Health Retreat; never use any other name for it. Write directly to the client ("you"), by first name, in a warm, encouraging, professional and easy-to-understand style. Keep the report to about two to three pages before the Client Information page.
 
 ## Step 1. Gather the intake
 
@@ -72,7 +72,7 @@ What happens now: the suitability consultation by video call, what it is for, an
 
 **A Closing Word**
 
-A short, personal and encouraging paragraph, signed Dirk J. Lambert, Trauma/EMDR Specialist and Program Director, New Paradigm Mental Health Retreat.
+A short, personal and encouraging paragraph, signed Dirk J. Lambert, Trauma/EMDR Specialist, New Paradigm Mental Health Retreat.
 
 **Client Information** (rendered automatically on the last page)
 
@@ -89,7 +89,7 @@ Name, age, gender, country, date of the evaluation, Emotional Load Score with pe
 
 ## Step 3. Save and report back
 
-- Write the content as a JSON file for `scripts/build-report.js` in `reports/`, named `<surname>-feedback.json`. Set `"title"` to "Your EEVA Feedback Report", put the score and the evaluation date in `"subtitle"`, and keep `"preparedBy"` as "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist and Program Director". Use the section headings above in `sections`, and the client information in `clientInfo`.
+- Write the content as a JSON file for `scripts/build-report.js` in `reports/`, named `<surname>-feedback.json`. Set `"title"` to "Your EEVA Feedback Report", put the score and the evaluation date in `"subtitle"`, and keep `"preparedBy"` as "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist". Use the section headings above in `sections`, and the client information in `clientInfo`.
 - Build the Word file: `node scripts/build-report.js reports/<surname>-feedback.json "reports/Feedback - <Client Name> - <DDMMYYYY>.docx"`, with today's date. Then the PDF: `node scripts/convert-pdf.js "reports/Feedback - <Client Name> - <DDMMYYYY>.docx" "reports/Feedback - <Client Name> - <DDMMYYYY>.pdf"`. Check that the PDF has all headings, no em dash, and Client Information on the last page.
 - Write a short cover email as `reports/Email - Feedback - <Client Name> - <DDMMYYYY>.md`: subject line, a thank-you for completing the EEVA, one sentence on what the attached feedback report contains, the invitation to book the suitability consultation, and the same signature as scripts/email-template.md. The same writing rules apply.
 - Do not attach the report to the Supabase client record, do not email it, and do not write to the CRM. Dirk reviews it first and sends the email from OnePageCRM. Never create a Gmail draft.
