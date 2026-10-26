@@ -212,12 +212,13 @@ async function main() {
     }
     out({ client: clients[0].name, saved });
   } else if (cmd === "pending") {
-    // pending [days=30] : each client's latest evaluation from the last N days that has no EEVA report attached
+    // pending [days=30] : each client's latest evaluation from the last N days that has no EEVA or feedback report attached
     // and no stored draft dated after it. prior_evaluations > 0 marks a follow-up from a returning client.
     const days = Number(a1 || 30);
     const since = new Date(Date.now() - days * 86400000).toISOString();
     const { body: evals } = await rest(cfg, `evaluations?select=id,client_id,submitted_at,score_raw,score_percent,current_situation,clients(name,email,country,age,gender)&submitted_at=gte.${since}&order=submitted_at.desc`);
-    const { body: atts } = await rest(cfg, `attachments?select=client_id,uploaded_at&path=like.*/eevas/*`);
+    // A feedback report (filed under General with a "Feedback - ..." label) also answers an evaluation.
+    const { body: atts } = await rest(cfg, `attachments?select=client_id,uploaded_at&or=(path.like.*/eevas/*,label.ilike.feedback*)`);
     const lastReport = {};
     const note = (id, at) => { if (at && (!lastReport[id] || at > lastReport[id])) lastReport[id] = at; };
     for (const a of atts) note(a.client_id, new Date(a.uploaded_at).toISOString());

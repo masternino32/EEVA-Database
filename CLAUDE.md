@@ -111,6 +111,7 @@ Write in a compassionate, professional, and reassuring tone using clear language
 - Do not use the em dash character.
 - Do not make unsupported diagnoses or promises of recovery.
 - Base all recommendations on the information provided by the client.
+- Whenever a report shows scores from more than one evaluation (score tables, charts, category comparisons, lists in the text, the Client Information page and the email), put the most recent score first and work back to the oldest.
 - Put the client information on a separate last page
 - Save every report and its email in reports/: the content JSON, the Word document "EEVA - <Client Name> - <DDMMYYYY>.docx", the PDF "EEVA - <Client Name> - <DDMMYYYY>.pdf", and the email "Email - <Client Name> - <DDMMYYYY>.md". Do not save new reports in "PDF Report Files/", which holds older reports only.
 - create a PDF file

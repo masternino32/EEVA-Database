@@ -17,7 +17,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ## Workflow for one report
 
-1. **Find the intake.** `node scripts/supabase-db.js pending` lists each client's latest evaluation that has no EEVA report attached and no draft stored after it, with `prior_evaluations` and `follow_up` for returning clients. `node scripts/supabase-db.js client <surname>` prints the client record and all their evaluations, including the selected statements grouped by category and the free-text situation.
+1. **Find the intake.** `node scripts/supabase-db.js pending` lists each client's latest evaluation that has no EEVA or feedback report attached and no draft stored after it, with `prior_evaluations` and `follow_up` for returning clients. `node scripts/supabase-db.js client <surname>` prints the client record and all their evaluations, including the selected statements grouped by category and the free-text situation.
 2. **Write the content** as a JSON file following `scripts/report-content.example.json`, obeying every rule in CLAUDE.md. Keep the twelve headings in order. Client information goes in `clientInfo`, which the builder always places on its own last page.
 3. **Build the Word file.** `node scripts/build-report.js reports/<name>.json "reports/EEVA - <Name> - <DDMMYYYY>.docx"`. The builder refuses content that contains an em dash.
 4. **Make the PDF.** `node scripts/convert-pdf.js "reports/<file>.docx" "reports/<file>.pdf"`. Uses LibreOffice when present, otherwise Microsoft Word on Windows.
@@ -25,7 +25,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ## Drafts
 
-The cloud routine stores its drafts with `node scripts/supabase-db.js draft "<client name>" "<file>.pdf" "<file>.docx" <content>.json "<email>.md"`, which uploads to the private `drafts/` folder of the `documents` bucket and writes no `attachments` row, so nothing shows on the client record. `node scripts/supabase-db.js drafts` lists stored drafts and `node scripts/supabase-db.js draft-pull "<client name>"` downloads a client's draft PDF, Word file, JSON and email into `reports/` for review. To finalise, edit the JSON, rebuild with `build-report.js`, convert, and attach. `pending` compares dates per evaluation, so a returning client's new evaluation shows up again even when an older report is attached. Returning clients get a compact follow-up report: see `scripts/follow-up-evaluation-prompt.md` and `scripts/followup-data.js`.
+The cloud routine stores its drafts with `node scripts/supabase-db.js draft "<client name>" "<file>.pdf" "<file>.docx" <content>.json "<email>.md"`, which uploads to the private `drafts/` folder of the `documents` bucket and writes no `attachments` row, so nothing shows on the client record. `node scripts/supabase-db.js drafts` lists stored drafts and `node scripts/supabase-db.js draft-pull "<client name>"` downloads a client's draft PDF, Word file, JSON and email into `reports/` for review. To finalise, edit the JSON, rebuild with `build-report.js`, convert, and attach. `pending` compares dates per evaluation, so a returning client's new evaluation shows up again even when an older report is attached. Returning clients get a compact follow-up report: see Part 2 of `scripts/report-prompts.md` and `scripts/followup-data.js`. Feedback reports, follow-up evaluations and mid-term progress reports are all described in `scripts/report-prompts.md`.
 
 6. **Write the client email** as `reports/Email - <Client Name> - <DDMMYYYY>.md`, following `scripts/email-template.md`.
 
