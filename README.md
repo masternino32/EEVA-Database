@@ -19,15 +19,15 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 1. **Find the intake.** `node scripts/supabase-db.js pending` lists each client's latest evaluation that has no EEVA or feedback report attached and no draft stored after it, with `prior_evaluations` and `follow_up` for returning clients. `node scripts/supabase-db.js client <surname>` prints the client record and all their evaluations, including the selected statements grouped by category and the free-text situation.
 2. **Write the content** as a JSON file following `scripts/report-content.example.json`, obeying every rule in CLAUDE.md. Keep the twelve headings in order. Client information goes in `clientInfo`, which the builder always places on its own last page.
-3. **Build the Word file.** `node scripts/build-report.js reports/<name>.json "reports/EEVA - <Name> - <DDMMYYYY>.docx"`. The builder refuses content that contains an em dash.
-4. **Make the PDF.** `node scripts/convert-pdf.js "reports/<file>.docx" "reports/<file>.pdf"`. Uses LibreOffice when present, otherwise Microsoft Word on Windows.
-5. **Attach to the client record.** `node scripts/supabase-db.js attach "<client name>" eevas "reports/<file>.pdf"`. This uploads to the `documents` bucket and inserts the `attachments` row the dashboard reads. Word files (`.docx`, `.doc`) can be attached the same way and are stored with the correct Word content type; other file types are refused. Only final, human-reviewed reports are attached. Drafts are never attached to a client record.
+3. **Build the Word file.** `node scripts/build-report.js "Reports/<Letter>/<Client Name>/<name>.json" "Reports/<Letter>/<Client Name>/EEVA - <Name> - <DDMMYYYY>.docx"`. The builder refuses content that contains an em dash.
+4. **Make the PDF.** `node scripts/convert-pdf.js "Reports/<Letter>/<Client Name>/<file>.docx" "Reports/<Letter>/<Client Name>/<file>.pdf"`. Uses LibreOffice when present, otherwise Microsoft Word on Windows.
+5. **Attach to the client record.** `node scripts/supabase-db.js attach "<client name>" eevas "Reports/<Letter>/<Client Name>/<file>.pdf"`. This uploads to the `documents` bucket and inserts the `attachments` row the dashboard reads. Word files (`.docx`, `.doc`) can be attached the same way and are stored with the correct Word content type; other file types are refused. Only final, human-reviewed reports are attached. Drafts are never attached to a client record.
 
 ## Drafts
 
-The cloud routine stores its drafts with `node scripts/supabase-db.js draft "<client name>" "<file>.pdf" "<file>.docx" <content>.json "<email>.md"`, which uploads to the private `drafts/` folder of the `documents` bucket and writes no `attachments` row, so nothing shows on the client record. `node scripts/supabase-db.js drafts` lists stored drafts and `node scripts/supabase-db.js draft-pull "<client name>"` downloads a client's draft PDF, Word file, JSON and email into `reports/` for review. To finalise, edit the JSON, rebuild with `build-report.js`, convert, and attach. `pending` compares dates per evaluation, so a returning client's new evaluation shows up again even when an older report is attached. Returning clients get a compact follow-up report: see Part 2 of `scripts/report-prompts.md` and `scripts/followup-data.js`. Feedback reports, follow-up evaluations and mid-term progress reports are all described in `scripts/report-prompts.md`.
+The cloud routine stores its drafts with `node scripts/supabase-db.js draft "<client name>" "<file>.pdf" "<file>.docx" <content>.json "<email>.md"`, which uploads to the private `drafts/` folder of the `documents` bucket and writes no `attachments` row, so nothing shows on the client record. `node scripts/supabase-db.js drafts` lists stored drafts and `node scripts/supabase-db.js draft-pull "<client name>"` downloads a client's draft PDF, Word file, JSON and email into `Reports/<Letter>/<Client Name>/` for review. To finalise, edit the JSON, rebuild with `build-report.js`, convert, and attach. `pending` compares dates per evaluation, so a returning client's new evaluation shows up again even when an older report is attached. Returning clients get a compact follow-up report: see Part 2 of `scripts/report-prompts.md` and `scripts/followup-data.js`. Feedback reports, follow-up evaluations and mid-term progress reports are all described in `scripts/report-prompts.md`.
 
-6. **Write the client email** as `reports/Email - <Client Name> - <DDMMYYYY>.md`, following `scripts/email-template.md`.
+6. **Write the client email** as `Reports/<Letter>/<Client Name>/Email - <Client Name> - <DDMMYYYY>.md`, following `scripts/email-template.md`.
 
 File naming: `EEVA - <Client Name> - <DDMMYYYY>.pdf`, dated the day the report is written. The email uses the same date.
 
@@ -37,7 +37,7 @@ Tables used: `clients`, `evaluations` (one row per intake submission; `selected_
 
 ## Privacy
 
-All new reports and emails go in `reports/`. `PDF Report Files/` holds older reports only. Report files and the `.env` are excluded from git. Never commit anything under `reports/` or `PDF Report Files/`.
+All new reports and emails go in the client folder `Reports/<Letter>/<Client Name>/`, where `<Letter>` is the first letter of the client folder name (for example `Reports/A/Ahmed Bucheeri/`). `PDF Report Files/` holds older reports only. Report files and the `.env` are excluded from git. Never commit anything under `Reports/` or `PDF Report Files/`.
 
 ## Cloud automation
 

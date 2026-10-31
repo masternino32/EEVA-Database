@@ -1,6 +1,7 @@
 # Send report emails through the Brevo SMTP relay with the PDF attached.
 # Usage: python scripts/send-report-email.py <to> <email.md> <report.pdf> [--test]
-#   --test sends to the sender's own address only, with "[TEST]" in the subject and no BCC.
+#   --test sends to the sender's own address only, with "[TEST]" in the subject.
+# No BCC to Dirk (stopped 2026-10-31 at Dirk's request).
 # SMTP credentials are read from the website config.php at run time and never printed.
 import re, smtplib, sys, os
 from email.message import EmailMessage
@@ -26,8 +27,6 @@ def build(to, md_path, pdf_path, test):
     msg["From"] = formataddr(SENDER)
     msg["Reply-To"] = SENDER[1]
     msg["To"] = SENDER[1] if test else to
-    if not test:
-        msg["Bcc"] = SENDER[1]
     msg["Subject"] = ("[TEST] " if test else "") + subject
     msg["Message-ID"] = make_msgid(domain="newparadigm.org")
     msg.set_content(body + "\n")

@@ -9,7 +9,7 @@
 //   node scripts/supabase-db.js detach <attachment id>   remove one file from a client record (row and storage object)
 //   node scripts/supabase-db.js draft <name> <pdf> [docx] [json] [email.md]  store a DRAFT in the private drafts/ folder (never on the client record)
 //   node scripts/supabase-db.js drafts                     list stored drafts
-//   node scripts/supabase-db.js draft-pull <name> [dir]    download a client's draft files for local review (default dir: reports/)
+//   node scripts/supabase-db.js draft-pull <name> [dir]    download a client's draft files for local review (default dir: Reports/<Letter>/<Client Name>/)
 //
 // Connection is read from .env in this folder (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).
 // If no .env exists, it falls back to the website config at ../../Websites/New Paradigm Claude/site/config.php.
@@ -197,9 +197,10 @@ async function main() {
     out(await listDrafts(cfg));
   } else if (cmd === "draft-pull") {
     // draft-pull <client name> [dir] : download a client's draft files for local review
-    const dir = a2 || "reports";
     const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(a1)}*`);
     if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${a1}"`, matches: clients }); process.exit(1); }
+    // Default: the client folder Reports/<first letter>/<Client Name>/
+    const dir = a2 || path.join("Reports", clients[0].name.trim().charAt(0).toUpperCase(), clients[0].name.trim());
     const mine = (await listDrafts(cfg)).filter((d) => d.client_id === clients[0].id);
     fs.mkdirSync(dir, { recursive: true });
     const saved = [];

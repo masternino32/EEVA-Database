@@ -20,8 +20,8 @@ To use one in Claude Code, open the EEVA Report folder, copy the prompt from the
 - Do not use the em dash character. Do not use horizontal lines. Use bold headings and leave one blank line between paragraphs.
 - Personalise every section; avoid generic text that could fit any client.
 - If the sources mention a risk (self-harm, suicidal thoughts, feeling unsafe, heavy substance use), keep the client text calm and supportive and tell Dirk in the chat reply so he can follow up personally.
-- Write the content JSON for `scripts/build-report.js`, build the Word file, convert it with `scripts/convert-pdf.js`, render the PDF and check the layout. Then delete the .docx; keep the PDF, the content JSON and the email in `reports/<Client Name>/`.
-- Do not attach anything to the Supabase client record, do not email the client and do not write to the CRM unless Dirk asks. Never create a Gmail draft. Do not commit anything under `reports/` to git.
+- Write the content JSON for `scripts/build-report.js`, build the Word file, convert it with `scripts/convert-pdf.js`, render the PDF and check the layout. Then delete the .docx; keep the PDF, the content JSON and the email in `Reports/<Letter>/<Client Name>/`.
+- Do not attach anything to the Supabase client record, do not email the client and do not write to the CRM unless Dirk asks. Never create a Gmail draft. Do not commit anything under `Reports/` to git.
 
 ________________________________________
 
@@ -33,7 +33,7 @@ The feedback report is a short, personal document the client receives soon after
 
 1. Run `node scripts/supabase-db.js client <surname>` and use the client's most recent evaluation. Note the score (score_raw out of 45), the selected statements grouped by category (selected_categories), current_situation, seeking_treatment_for, medication, psychiatric_diagnosis, psychiatric_hospital, looking_for and bach_flower_remedy.
 2. If the client has more than one evaluation, collect every one of them for the comparison in Step 2: the date, score_raw, the selected statements per category and the current_situation text. Also run `node scripts/supabase-db.js get client_progress "client_id=eq.<id>&order=submitted_at"` for the recorded trajectory (score_percent, prev_percent, change_pct, baseline_percent, change_from_baseline). Evaluations entered by staff (user_agent starting with "admin-entry") count as regular evaluations. If two evaluations were submitted within a day of each other with almost the same answers, treat them as possible duplicates and mention this to Dirk instead of presenting them as progress.
-3. Check `reports/` and `PDF Report Files/` for earlier EEVA reports, feedback reports and emails for this client, so the feedback report uses the same recommendation and the same proposed dates and stays consistent with what the client was told before.
+3. Check `Reports/<Letter>/<Client Name>/` and `PDF Report Files/` for earlier EEVA reports, feedback reports and emails for this client, so the feedback report uses the same recommendation and the same proposed dates and stays consistent with what the client was told before.
 4. If the client name or details look like a test submission (for example the email nino@ninovega.com or dirk.paeshuys@gmail.com, or placeholder text in the situation), stop and ask before writing.
 
 ## Step 2. Write the report
@@ -95,7 +95,7 @@ Name, age, gender, country, date of the evaluation, Emotional Load Score with pe
 
 ## Step 3. Save and report back
 
-- Content JSON `reports/<Client Name>/<surname>-feedback.json`, with `"title"` "Your EEVA Feedback Report", the score and evaluation date in `"subtitle"`, and `"preparedBy"` "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist".
+- Content JSON `Reports/<Letter>/<Client Name>/<surname>-feedback.json`, with `"title"` "Your EEVA Feedback Report", the score and evaluation date in `"subtitle"`, and `"preparedBy"` "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist".
 - Build `Feedback - <Client Name> - <DDMMYYYY>.docx`, convert to `.pdf`, and check that all headings are present with Client Information on the last page.
 - Cover email `Email - Feedback - <Client Name> - <DDMMYYYY>.md`: subject line, thanks for completing the EEVA, one sentence on what the attached report contains, the invitation to book the suitability consultation, and the signature from scripts/email-template.md.
 - In the chat, reply with the file paths, the score and percentage, the change since the previous evaluation (when there is one), the recommended option, and any point that needs Dirk's personal follow-up, including possible duplicate evaluations or scores that do not match client_progress.
@@ -119,7 +119,7 @@ Use this when a client who has already had treatment with New Paradigm (inpatien
 
 ## Step 2. Read the treatment context
 
-Read what happened since the previous evaluation: the client's files in `PDF Report Files/<Client Name>/` and `reports/<Client Name>/` (session summaries, progress reports, earlier affirmations and Bach prescriptions), and the session notes in Supabase (`node scripts/supabase-db.js get therapy_sessions "client_id=eq.<id>&order=session_date"`). Use this only to explain the change in scores and to personalise the recommendations. Keep sensitive details (names of other people, substances, legal matters, intimate details) out of the client report.
+Read what happened since the previous evaluation: the client's files in `Reports/<Letter>/<Client Name>/`, which since 31 October 2026 also holds the client folders that used to be in `PDF Report Files/` (session summaries, progress reports, earlier affirmations and Bach prescriptions), and the session notes in Supabase (`node scripts/supabase-db.js get therapy_sessions "client_id=eq.<id>&order=session_date"`). Use this only to explain the change in scores and to personalise the recommendations. Keep sensitive details (names of other people, substances, legal matters, intimate details) out of the client report.
 
 ## Step 3. Decide the recommendation
 
@@ -127,7 +127,7 @@ When the client ticked "Looking For", follow it as CLAUDE.md describes. Otherwis
 
 ## Step 4. Write the draft
 
-Save it as `reports/<Client Name>/<surname>-followup-draft.json` with `"title": "Follow-Up Emotional Evaluation"`, a one- or two-sentence intro, and these sections in this order:
+Save it as `Reports/<Letter>/<Client Name>/<surname>-followup-draft.json` with `"title": "Follow-Up Emotional Evaluation"`, a one- or two-sentence intro, and these sections in this order:
 
 1. **Emotional Load Score**: one paragraph with the score out of 45, the percentage, the ideal below 15%, and what the level means.
 2. **Your Score Progress**: `{ "type": "@scorechart" }`, `{ "type": "@history" }`, then one or two sentences on the trend (mention the very first evaluation if it is older than the five shown).
@@ -142,16 +142,16 @@ Leave out the program sections of the first evaluation (What to Expect, modaliti
 ## Step 5. Build
 
 ```
-node scripts/followup-data.js fill <surname> "<draft.json>" "reports/<Client Name>/<surname>-followup.json"
-node scripts/build-report.js "reports/<Client Name>/<surname>-followup.json" "reports/<Client Name>/EEVA - <Client Name> - <DDMMYYYY>.docx"
-node scripts/convert-pdf.js "<the .docx>" "reports/<Client Name>/EEVA - <Client Name> - <DDMMYYYY>.pdf"
+node scripts/followup-data.js fill <surname> "<draft.json>" "Reports/<Letter>/<Client Name>/<surname>-followup.json"
+node scripts/build-report.js "Reports/<Letter>/<Client Name>/<surname>-followup.json" "Reports/<Letter>/<Client Name>/EEVA - <Client Name> - <DDMMYYYY>.docx"
+node scripts/convert-pdf.js "<the .docx>" "Reports/<Letter>/<Client Name>/EEVA - <Client Name> - <DDMMYYYY>.pdf"
 ```
 
 Then delete the .docx and the draft. Check the layout: about four pages, Bach and Client Information each on their own page. To refresh the scores in a finished report later, run `fill` again on the content JSON itself.
 
 ## Step 6. Email
 
-Write `reports/<Client Name>/Email - <Client Name> - <DDMMYYYY>.md` with the subject "Your Follow-Up Emotional Evaluation": thanks, the latest score against the previous and first ones, one or two sentences on what has eased and what remains, the recommendation or the open offer of online EMDR, a mention of the affirmations and Bach prescription, and a safety line when the evaluation includes panic, self-harm or hopelessness. Keep it under 200 words. To send it with the report attached when Dirk asks, use `python -I scripts/send-report-email.py <to> "<email.md>" "<report.pdf>"` (send with `--test` first).
+Write `Reports/<Letter>/<Client Name>/Email - <Client Name> - <DDMMYYYY>.md` with the subject "Your Follow-Up Emotional Evaluation": thanks, the latest score against the previous and first ones, one or two sentences on what has eased and what remains, the recommendation or the open offer of online EMDR, a mention of the affirmations and Bach prescription, and a safety line when the evaluation includes panic, self-harm or hopelessness. Keep it under 200 words. To send it with the report attached when Dirk asks, use `python -I scripts/send-report-email.py <to> "<email.md>" "<report.pdf>"` (send with `--test` first).
 
 ## Automatic follow-ups
 
@@ -182,7 +182,7 @@ Collect all the data before you write anything. Search for the client's first na
    - `node scripts/supabase-db.js get treatment_notes "client_id=eq.<id>&order=created_at"` for treatment notes.
    - `node scripts/supabase-db.js get cbt_progress "client_id=eq.<id>"` for CBT checklist progress.
    - `node scripts/supabase-db.js get attachments "client_id=eq.<id>"` to see which files are on the record (EEVAs, session reports, medical).
-2. **Session summaries on disk.** Search `reports/` and `PDF Report Files/` for every file with the client's name, including session summaries, meeting notes, EEVA reports, letters and emails. Read each one fully.
+2. **Session summaries on disk.** Search `Reports/` (all letter folders) and `PDF Report Files/` for every file with the client's name, including session summaries, meeting notes, EEVA reports, letters and emails. Read each one fully.
 3. **Emails.** Use the Gmail connector on dirk.lambert@newparadigm.org. Search for messages from and to the client's address and name, and read the full threads, including what the client wrote between sessions about symptoms, insights, setbacks and proposed targets. Ignore messages that only contain session links.
 4. **OnePageCRM.** Find the contact and read its status, background, notes, calls, meetings and actions.
 5. **Google Calendar.** Search the whole calendar history, from the first contact date to today plus any booked future sessions, for every event with the client's first name, surname or email address (titles such as "<First Name> Session", "<First Name> EMDR" or "<Full Name>", and events where the client is an attendee). Use a full-text search rather than a short date window, and page through all results. Record each event's date, start and end time, title and status. Leave out cancelled events, but list them separately.
@@ -258,7 +258,7 @@ Leave out of the client version: source references in brackets, the Sources Revi
 
 ## Step 5. Save and report back
 
-- Write each report as a content JSON in `reports/<Client Name>/` (set `"title"` to "Mid-Term Progress Report (Clinical)" or "Your Progress Summary", and use `{ "type": "table" }` blocks for the tables; see the O'Byrne progress JSONs as examples). Name the files `Progress Report - <Client Name> - <DDMMYYYY>` (clinical) and `Progress Summary - <Client Name> - <DDMMYYYY>` (client version), with today's date.
+- Write each report as a content JSON in `Reports/<Letter>/<Client Name>/` (set `"title"` to "Mid-Term Progress Report (Clinical)" or "Your Progress Summary", and use `{ "type": "table" }` blocks for the tables; see the O'Byrne progress JSONs as examples). Name the files `Progress Report - <Client Name> - <DDMMYYYY>` (clinical) and `Progress Summary - <Client Name> - <DDMMYYYY>` (client version), with today's date.
 - In the chat, reply with both file paths, a three to five line summary of the findings, a list of any sources that could not be reached or data that is missing, and any safety point that needs Dirk's personal follow-up.
 
 ## Prompt

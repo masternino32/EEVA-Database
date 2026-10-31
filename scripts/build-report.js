@@ -16,6 +16,7 @@
 //   "clientInfo": [["Name", "Full Name"], ["Age", "54"]]
 // }
 // Blocks are plain strings (paragraphs) or objects: {type:"scores"} inserts the category table,
+// Paragraph strings may mark bold passages with **double asterisks**.
 // {type:"phase", label, text} renders a bold label followed by text on one paragraph,
 // {type:"table", columns:[...], widths:[...], rows:[[...]]} renders a general table (widths in DXA, total at most 9600),
 // {type:"bullets", items:[...]} renders a bulleted list,
@@ -23,7 +24,9 @@
 // as a percentage), newest first, with the first point highlighted as the latest and a dashed line at the ideal percentage.
 // Optional "title" replaces the default document title (used for progress reports).
 // A section may set "pageBreakBefore": true to start on a new page.
-// The Client Information section is always rendered last, on its own page.
+// The Client Information section is always rendered last, on its own page,
+// unless "clientInfoPageBreak": false is set (used for compact summaries).
+// Optional "compact": true uses smaller type, tighter spacing and narrower margins, and lets tables split across pages.
 
 const fs = require("fs");
 const {
@@ -47,23 +50,32 @@ if (allText.includes(EM_DASH)) {
 
 const FONT = "Calibri";
 const CLIENT = spec.client;
+const C = !!spec.compact;
+// Sizes in half-points and spacing in twentieths of a point; the compact values apply to two-page summaries.
+const SZ = { body: C ? 19 : 22, cell: C ? 18 : 21, heading: C ? 22 : 26, title: C ? 28 : 36, client: C ? 24 : 28 };
+const SP = { after: C ? 100 : 200, line: C ? 250 : 300, cellPad: C ? 40 : 80, margin: C ? 900 : 1300 };
 
+// Paragraph text may mark bold passages with **double asterisks**.
 const p = (text, opts = {}) => new Paragraph({
-  spacing: { after: 200, line: 300 },
-  children: [new TextRun({ text, font: FONT, size: opts.size || 22, bold: !!opts.bold, color: opts.color || "222222" })],
+  spacing: { after: SP.after, line: SP.line },
+  // split with a capture group puts the bold passages at the odd indexes.
+  children: String(text).split(/\*\*(.+?)\*\*/)
+    .map((part, i) => ({ part, bold: !!opts.bold || i % 2 === 1 }))
+    .filter(({ part }) => part !== "")
+    .map(({ part, bold }) => new TextRun({ text: part, font: FONT, size: opts.size || SZ.body, bold, color: opts.color || "222222" })),
 });
 // The page break is a property of the heading, so a full preceding page never leaves a blank page behind.
 const h = (text, pageBreakBefore = false) => new Paragraph({
-  spacing: { before: 240, after: 160 },
+  spacing: { before: C ? 160 : 240, after: C ? 80 : 160 },
   keepNext: true,
   pageBreakBefore,
-  children: [new TextRun({ text, font: FONT, size: 26, bold: true, color: "1F3A5F" })],
+  children: [new TextRun({ text, font: FONT, size: SZ.heading, bold: true, color: "1F3A5F" })],
 });
 const labelled = (label, text, after) => new Paragraph({
-  spacing: { after, line: 300 },
+  spacing: { after: C ? Math.min(after, 80) : after, line: SP.line },
   children: [
-    new TextRun({ text: label + ": ", font: FONT, size: 22, bold: true, color: "222222" }),
-    new TextRun({ text, font: FONT, size: 22, color: "222222" }),
+    new TextRun({ text: label + ": ", font: FONT, size: SZ.body, bold: true, color: "222222" }),
+    new TextRun({ text, font: FONT, size: SZ.body, color: "222222" }),
   ],
 });
 
@@ -73,8 +85,8 @@ const cell = (text, w, bold = false, shade = null, keepNext = false) => new Tabl
   width: { size: w, type: WidthType.DXA },
   borders,
   shading: shade ? { type: ShadingType.CLEAR, fill: shade, color: "auto" } : undefined,
-  margins: { top: 80, bottom: 80, left: 120, right: 120 },
-  children: [new Paragraph({ spacing: { after: 0 }, keepNext, children: [new TextRun({ text: String(text), font: FONT, size: 21, bold, color: "222222" })] })],
+  margins: { top: SP.cellPad, bottom: SP.cellPad, left: 120, right: 120 },
+  children: [new Paragraph({ spacing: { after: 0 }, keepNext, children: [new TextRun({ text: String(text), font: FONT, size: SZ.cell, bold, color: "222222" })] })],
 });
 const scoresTable = () => new Table({
   width: { size: 6000, type: WidthType.DXA },
@@ -85,14 +97,14 @@ const scoresTable = () => new Table({
     new TableRow({ children: [cell("Total", 4200, true, "F3F3F3"), cell(spec.scores.total, 1800, true, "F3F3F3")] }),
   ],
 });
-const spacer = () => new Paragraph({ spacing: { after: 120 }, children: [] });
+const spacer = () => new Paragraph({ spacing: { after: C ? 60 : 120 }, children: [] });
 const genericTable = ({ columns, widths, rows }) => new Table({
   width: { size: widths.reduce((a, b) => a + b, 0), type: WidthType.DXA },
   columnWidths: widths,
   rows: [
     new TableRow({ tableHeader: true, children: columns.map((c, i) => cell(c, widths[i], true, "E8EEF5", true)) }),
-    // Short tables (up to 12 rows) are kept on one page.
-    ...rows.map((r, n) => new TableRow({ cantSplit: true, children: r.map((v, i) => cell(v, widths[i], false, null, rows.length <= 12 && n < rows.length - 1)) })),
+    // Short tables (up to 12 rows) are kept on one page, except in compact mode.
+    ...rows.map((r, n) => new TableRow({ cantSplit: true, children: r.map((v, i) => cell(v, widths[i], false, null, !C && rows.length <= 12 && n < rows.length - 1)) })),
   ],
 });
 
@@ -152,8 +164,8 @@ const bullet = (text, last) => new Paragraph({
 
 const TITLE = spec.title || "Emotional Evaluation and Treatment Plan";
 const children = [
-  new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: TITLE, font: FONT, size: 36, bold: true, color: "1F3A5F" })] }),
-  new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: CLIENT, font: FONT, size: 28, bold: true, color: "222222" })] }),
+  new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: TITLE, font: FONT, size: SZ.title, bold: true, color: "1F3A5F" })] }),
+  new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: CLIENT, font: FONT, size: SZ.client, bold: true, color: "222222" })] }),
   ...(spec.subtitle || []).map((s) => p(s, { color: "444444" })),
   p(spec.preparedBy || "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist", { color: "444444" }),
   p(spec.intro),
@@ -172,15 +184,15 @@ for (const section of spec.sections) {
   }
 }
 
-children.push(h("Client Information", true));
+children.push(h("Client Information", spec.clientInfoPageBreak !== false));
 for (const [label, text] of spec.clientInfo) children.push(labelled(label, text, 120));
 
 const doc = new Document({
   creator: "Dirk J. Lambert",
   title: TITLE + " - " + CLIENT,
-  styles: { default: { document: { run: { font: FONT, size: 22 } } } },
+  styles: { default: { document: { run: { font: FONT, size: SZ.body } } } },
   sections: [{
-    properties: { page: { margin: { top: 1300, bottom: 1200, left: 1300, right: 1300 } } },
+    properties: { page: { margin: { top: SP.margin, bottom: C ? 900 : 1200, left: SP.margin, right: SP.margin } } },
     headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [
       new TextRun({ text: "Confidential | " + CLIENT + " | ", font: FONT, size: 18, color: "777777" }),
       new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 18, color: "777777" }),

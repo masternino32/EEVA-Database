@@ -4,10 +4,16 @@
 
 # Client documents contain health data and must never be committed
 PDF Report Files/
+Document FIles/
+Document Files/
 reports/
+Reports/
 
 # Dependencies and local artefacts
 node_modules/
 *.log
 ~$*
 .vscode/
+
+# Python cache
+__pycache__/
