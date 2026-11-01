@@ -16,7 +16,7 @@ const fs = require("fs");
 const path = require("path");
 const { loadConfig, rest } = require("./supabase-db.js");
 
-const BASE_PRICE_THB = 240000;
+const BASE_PRICE_THB = 245000;
 const PROPOSED_ARRIVAL = "2027-01-10";
 const CRM_STATUS = "Inquiries";
 const TEST_EMAILS = ["nino@ninovega.com", "dirk.paeshuys@gmail.com"];
