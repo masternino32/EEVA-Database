@@ -9,7 +9,7 @@
 //   node scripts/supabase-db.js detach <attachment id>   remove one file from a client record (row and storage object)
 //   node scripts/supabase-db.js draft <name> <pdf> [docx] [json] [email.md]  store a DRAFT in the private drafts/ folder (never on the client record)
 //   node scripts/supabase-db.js drafts                     list stored drafts
-//   node scripts/supabase-db.js draft-pull <name> [dir]    download a client's draft files for local review (default dir: Reports/<Letter>/<Client Name>/)
+//   node scripts/supabase-db.js draft-pull <name> [dir]    download a client's draft files for local review (default: Reports/<Letter>/<Client Name>/eeva/, email in md files/)
 //
 // Connection is read from .env in this folder (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).
 // If no .env exists, it falls back to the website config at ../../Websites/New Paradigm Claude/site/config.php.
@@ -199,14 +199,17 @@ async function main() {
     // draft-pull <client name> [dir] : download a client's draft files for local review
     const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(a1)}*`);
     if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${a1}"`, matches: clients }); process.exit(1); }
-    // Default: the client folder Reports/<first letter>/<Client Name>/
-    const dir = a2 || path.join("Reports", clients[0].name.trim().charAt(0).toUpperCase(), clients[0].name.trim());
+    // Default: the client folder Reports/<first letter>/<Client Name>/, with the report files
+    // in eeva/ and the email in "md files/". A dir given on the command line takes everything.
+    const clientDir = path.join("Reports", clients[0].name.trim().charAt(0).toUpperCase(), clients[0].name.trim());
+    const dirFor = (file) => a2 || path.join(clientDir, /\.md$/i.test(file) ? "md files" : "eeva");
     const mine = (await listDrafts(cfg)).filter((d) => d.client_id === clients[0].id);
-    fs.mkdirSync(dir, { recursive: true });
     const saved = [];
     for (const d of mine) {
       const r = await fetch(`${cfg.SUPABASE_URL}/storage/v1/object/documents/${d.path}`, { headers: { apikey: cfg.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}` } });
       if (!r.ok) throw new Error(`Download failed HTTP ${r.status} for ${d.path}`);
+      const dir = dirFor(d.file);
+      fs.mkdirSync(dir, { recursive: true });
       const target = path.join(dir, d.file.replace(/_/g, " ").replace(/\.json$/, ".json"));
       fs.writeFileSync(target, Buffer.from(await r.arrayBuffer()));
       saved.push(target);

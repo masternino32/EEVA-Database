@@ -20,7 +20,7 @@ To use one in Claude Code, open the EEVA Report folder, copy the prompt from the
 - Do not use the em dash character. Do not use horizontal lines. Use bold headings and leave one blank line between paragraphs.
 - Personalise every section; avoid generic text that could fit any client.
 - If the sources mention a risk (self-harm, suicidal thoughts, feeling unsafe, heavy substance use), keep the client text calm and supportive and tell Dirk in the chat reply so he can follow up personally.
-- Write the content JSON for `scripts/build-report.js`, build the Word file, convert it with `scripts/convert-pdf.js`, render the PDF and check the layout. Then delete the .docx; keep the PDF, the content JSON and the email in `Reports/<Letter>/<Client Name>/`.
+- Write the content JSON for `scripts/build-report.js`, build the Word file, convert it with `scripts/convert-pdf.js`, render the PDF and check the layout. Then delete the .docx; keep the PDF and the content JSON in `Reports/<Letter>/<Client Name>/eeva/` and the email in `Reports/<Letter>/<Client Name>/md files/`.
 - Do not attach anything to the Supabase client record, do not email the client and do not write to the CRM unless Dirk asks. Never create a Gmail draft. Do not commit anything under `Reports/` to git.
 
 ________________________________________
@@ -95,7 +95,7 @@ Name, age, gender, country, date of the evaluation, Emotional Load Score with pe
 
 ## Step 3. Save and report back
 
-- Content JSON `Reports/<Letter>/<Client Name>/<surname>-feedback.json`, with `"title"` "Your EEVA Feedback Report", the score and evaluation date in `"subtitle"`, and `"preparedBy"` "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist".
+- Content JSON `Reports/<Letter>/<Client Name>/eeva/<surname>-feedback.json`, with `"title"` "Your EEVA Feedback Report", the score and evaluation date in `"subtitle"`, and `"preparedBy"` "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist".
 - Build `Feedback - <Client Name> - <DDMMYYYY>.docx`, convert to `.pdf`, and check that all headings are present with Client Information on the last page.
 - Cover email `Email - Feedback - <Client Name> - <DDMMYYYY>.md`: subject line, thanks for completing the EEVA, one sentence on what the attached report contains, the invitation to book the suitability consultation, and the signature from scripts/email-template.md.
 - In the chat, reply with the file paths, the score and percentage, the change since the previous evaluation (when there is one), the recommended option, and any point that needs Dirk's personal follow-up, including possible duplicate evaluations or scores that do not match client_progress.
@@ -127,7 +127,7 @@ When the client ticked "Looking For", follow it as CLAUDE.md describes. Otherwis
 
 ## Step 4. Write the draft
 
-Save it as `Reports/<Letter>/<Client Name>/<surname>-followup-draft.json` with `"title": "Follow-Up Emotional Evaluation"`, a one- or two-sentence intro, and these sections in this order:
+Save it as `Reports/<Letter>/<Client Name>/eeva/<surname>-followup-draft.json` with `"title": "Follow-Up Emotional Evaluation"`, a one- or two-sentence intro, and these sections in this order:
 
 1. **Emotional Load Score**: one paragraph with the score out of 45, the percentage, the ideal below 15%, and what the level means.
 2. **Your Score Progress**: `{ "type": "@scorechart" }`, `{ "type": "@history" }`, then one or two sentences on the trend (mention the very first evaluation if it is older than the five shown).
@@ -142,16 +142,16 @@ Leave out the program sections of the first evaluation (What to Expect, modaliti
 ## Step 5. Build
 
 ```
-node scripts/followup-data.js fill <surname> "<draft.json>" "Reports/<Letter>/<Client Name>/<surname>-followup.json"
-node scripts/build-report.js "Reports/<Letter>/<Client Name>/<surname>-followup.json" "Reports/<Letter>/<Client Name>/EEVA - <Client Name> - <DDMMYYYY>.docx"
-node scripts/convert-pdf.js "<the .docx>" "Reports/<Letter>/<Client Name>/EEVA - <Client Name> - <DDMMYYYY>.pdf"
+node scripts/followup-data.js fill <surname> "<draft.json>" "Reports/<Letter>/<Client Name>/eeva/<surname>-followup.json"
+node scripts/build-report.js "Reports/<Letter>/<Client Name>/eeva/<surname>-followup.json" "Reports/<Letter>/<Client Name>/eeva/EEVA - <Client Name> - <DDMMYYYY>.docx"
+node scripts/convert-pdf.js "<the .docx>" "Reports/<Letter>/<Client Name>/eeva/EEVA - <Client Name> - <DDMMYYYY>.pdf"
 ```
 
 Then delete the .docx and the draft. Check the layout: about four pages, Bach and Client Information each on their own page. To refresh the scores in a finished report later, run `fill` again on the content JSON itself.
 
 ## Step 6. Email
 
-Write `Reports/<Letter>/<Client Name>/Email - <Client Name> - <DDMMYYYY>.md` with the subject "Your Follow-Up Emotional Evaluation": thanks, the latest score against the previous and first ones, one or two sentences on what has eased and what remains, the recommendation or the open offer of online EMDR, a mention of the affirmations and Bach prescription, and a safety line when the evaluation includes panic, self-harm or hopelessness. Keep it under 200 words. To send it with the report attached when Dirk asks, use `python -I scripts/send-report-email.py <to> "<email.md>" "<report.pdf>"` (send with `--test` first).
+Write `Reports/<Letter>/<Client Name>/md files/Email - <Client Name> - <DDMMYYYY>.md` with the subject "Your Follow-Up Emotional Evaluation": thanks, the latest score against the previous and first ones, one or two sentences on what has eased and what remains, the recommendation or the open offer of online EMDR, a mention of the affirmations and Bach prescription, and a safety line when the evaluation includes panic, self-harm or hopelessness. Keep it under 200 words. To send it with the report attached when Dirk asks, use `python -I scripts/send-report-email.py <to> "<email.md>" "<report.pdf>"` (send with `--test` first).
 
 ## Automatic follow-ups
 
@@ -258,7 +258,7 @@ Leave out of the client version: source references in brackets, the Sources Revi
 
 ## Step 5. Save and report back
 
-- Write each report as a content JSON in `Reports/<Letter>/<Client Name>/` (set `"title"` to "Mid-Term Progress Report (Clinical)" or "Your Progress Summary", and use `{ "type": "table" }` blocks for the tables; see the O'Byrne progress JSONs as examples). Name the files `Progress Report - <Client Name> - <DDMMYYYY>` (clinical) and `Progress Summary - <Client Name> - <DDMMYYYY>` (client version), with today's date.
+- Write each report as a content JSON in `Reports/<Letter>/<Client Name>/other/` (set `"title"` to "Mid-Term Progress Report (Clinical)" or "Your Progress Summary", and use `{ "type": "table" }` blocks for the tables; see the O'Byrne progress JSONs as examples). Name the files `Progress Report - <Client Name> - <DDMMYYYY>` (clinical) and `Progress Summary - <Client Name> - <DDMMYYYY>` (client version), with today's date.
 - In the chat, reply with both file paths, a three to five line summary of the findings, a list of any sources that could not be reached or data that is missing, and any safety point that needs Dirk's personal follow-up.
 
 ## Prompt
