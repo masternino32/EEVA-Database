@@ -5,7 +5,7 @@
 //   node scripts/supabase-db.js columns <table>        column names (from one row)
 //   node scripts/supabase-db.js get <table> [params]   raw REST query, e.g. get clients "select=id,name&limit=5"
 //   node scripts/supabase-db.js client <name>          find a client by name and show their evaluations
-//   node scripts/supabase-db.js attach <name> <category> <file> [label prefix]  upload a FINAL report (.pdf, .docx or .doc) to the client record
+//   node scripts/supabase-db.js attach <name|client id> <category> <file> [label prefix]  upload a FINAL report (.pdf, .docx or .doc) to the client record
 //   node scripts/supabase-db.js detach <attachment id>   remove one file from a client record (row and storage object)
 //   node scripts/supabase-db.js draft <name> <pdf> [docx] [json] [email.md]  store a DRAFT in the private drafts/ folder (never on the client record)
 //   node scripts/supabase-db.js drafts                     list stored drafts
@@ -94,6 +94,22 @@ async function listDrafts(cfg) {
   });
 }
 
+// Resolve a client for attach, draft and draft-pull. Accepts a client id (UUID), or a name:
+// a partial, case-insensitive match that must be unique, except that an exact name match wins
+// when the partial search finds several (e.g. "May" also matches "Mayan Mojado").
+async function findClients(cfg, nameOrId) {
+  const q = String(nameOrId || "").trim();
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q)) {
+    return (await rest(cfg, `clients?select=id,name&id=eq.${q}`)).body;
+  }
+  const { body } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(q)}*`);
+  if (body.length > 1) {
+    const exact = body.filter((c) => (c.name || "").trim().toLowerCase() === q.toLowerCase());
+    if (exact.length === 1) return exact;
+  }
+  return body;
+}
+
 async function main() {
   const [cmd, a1, a2] = process.argv.slice(2);
   const cfg = loadConfig();
@@ -119,7 +135,7 @@ async function main() {
     const ext = path.extname(filePath || "").toLowerCase();
     if (!ATTACHABLE.includes(ext)) throw new Error(`Unsupported attachment type: ${filePath}. Use one of ${ATTACHABLE.join(", ")}.`);
     const type = TYPES[ext];
-    const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(name)}*`);
+    const clients = await findClients(cfg, name);
     if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${name}"`, matches: clients }); process.exit(1); }
     const client = clients[0];
     const data = fs.readFileSync(filePath);
@@ -179,7 +195,7 @@ async function main() {
     // Stores a DRAFT report in the private drafts/ folder of the documents bucket for human review.
     // It never touches the attachments table, so nothing appears on the client record in the dashboard.
     const [, name, ...files] = process.argv.slice(2);
-    const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(name)}*`);
+    const clients = await findClients(cfg, name);
     if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${name}"`, matches: clients }); process.exit(1); }
     const client = clients[0];
     const stamp = Date.now();
@@ -197,24 +213,26 @@ async function main() {
     out(await listDrafts(cfg));
   } else if (cmd === "draft-pull") {
     // draft-pull <client name> [dir] : download a client's draft files for local review
-    const { body: clients } = await rest(cfg, `clients?select=id,name&name=ilike.*${encodeURIComponent(a1)}*`);
+    const clients = await findClients(cfg, a1);
     if (clients.length !== 1) { out({ error: `Expected exactly one client matching "${a1}"`, matches: clients }); process.exit(1); }
     // Default: the client folder Reports/<first letter>/<Client Name>/, with the report files
     // in eeva/ and the email in "md files/". A dir given on the command line takes everything.
     const clientDir = path.join("Reports", clients[0].name.trim().charAt(0).toUpperCase(), clients[0].name.trim());
     const dirFor = (file) => a2 || path.join(clientDir, /\.md$/i.test(file) ? "md files" : "eeva");
     const mine = (await listDrafts(cfg)).filter((d) => d.client_id === clients[0].id);
-    const saved = [];
+    const saved = [], skipped = [];
     for (const d of mine) {
       const r = await fetch(`${cfg.SUPABASE_URL}/storage/v1/object/documents/${d.path}`, { headers: { apikey: cfg.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}` } });
       if (!r.ok) throw new Error(`Download failed HTTP ${r.status} for ${d.path}`);
       const dir = dirFor(d.file);
       fs.mkdirSync(dir, { recursive: true });
       const target = path.join(dir, d.file.replace(/_/g, " ").replace(/\.json$/, ".json"));
+      // Never overwrite: a finished report often has the same JSON name as its draft.
+      if (fs.existsSync(target)) { skipped.push(target); continue; }
       fs.writeFileSync(target, Buffer.from(await r.arrayBuffer()));
       saved.push(target);
     }
-    out({ client: clients[0].name, saved });
+    out({ client: clients[0].name, saved, skipped_existing: skipped });
   } else if (cmd === "pending") {
     // pending [days=30] : each client's latest evaluation from the last N days that has no EEVA or feedback report attached
     // and no stored draft dated after it. prior_evaluations > 0 marks a follow-up from a returning client.
