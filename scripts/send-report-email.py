@@ -1,5 +1,6 @@
 # Send report emails through the Brevo SMTP relay with the PDF attached.
-# Usage: python scripts/send-report-email.py <to> <email.md> <report.pdf> [--test]
+# Usage: python scripts/send-report-email.py <to> <email.md> <report.pdf | -> [--test]
+#   Pass "-" in place of the PDF to send the email without an attachment.
 #   --test sends to the sender's own address only, with "[TEST]" in the subject.
 # No BCC to Dirk (stopped 2026-10-31 at Dirk's request).
 # SMTP credentials are read from the website config.php at run time and never printed.
@@ -21,7 +22,7 @@ def creds():
 
 def build(to, md_path, pdf_path, test):
     text = open(md_path, encoding="utf-8").read().strip()
-    m = re.match(r"Subject:\s*(.+)\n+", text)
+    m = re.match(r"(?:Subject|Onderwerp):\s*(.+)\n+", text)  # "Onderwerp:" for emails in Dutch
     subject, body = (m.group(1).strip(), text[m.end():]) if m else ("Your Follow-Up Emotional Evaluation", text)
     msg = EmailMessage()
     msg["From"] = formataddr(SENDER)
@@ -30,8 +31,9 @@ def build(to, md_path, pdf_path, test):
     msg["Subject"] = ("[TEST] " if test else "") + subject
     msg["Message-ID"] = make_msgid(domain="newparadigm.org")
     msg.set_content(body + "\n")
-    with open(pdf_path, "rb") as f:
-        msg.add_attachment(f.read(), maintype="application", subtype="pdf", filename=os.path.basename(pdf_path))
+    if pdf_path != "-":
+        with open(pdf_path, "rb") as f:
+            msg.add_attachment(f.read(), maintype="application", subtype="pdf", filename=os.path.basename(pdf_path))
     return msg
 
 if __name__ == "__main__":
@@ -43,4 +45,4 @@ if __name__ == "__main__":
         s.starttls()
         s.login(user, pw)
         refused = s.send_message(msg)
-    print("sent" if not refused else f"refused: {refused}", "|", msg["To"], "|", msg["Subject"], "|", os.path.basename(pdf), "|", msg["Message-ID"])
+    print("sent" if not refused else f"refused: {refused}", "|", msg["To"], "|", msg["Subject"], "|", (os.path.basename(pdf) if pdf != "-" else "no attachment"), "|", msg["Message-ID"])

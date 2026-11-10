@@ -51,9 +51,21 @@ if (allText.includes(EM_DASH)) {
 const FONT = "Calibri";
 const CLIENT = spec.client;
 const C = !!spec.compact;
+// Optional "labels" translate the fixed texts, e.g. for a report in Dutch:
+// { scoreCategory, scoreValue, total, clientInfo, confidential, footer, latest, ideal }.
+const L = Object.assign({
+  scoreCategory: "Emotional category", scoreValue: "Reported score", total: "Total",
+  clientInfo: "Client Information", confidential: "Confidential",
+  footer: "New Paradigm Mental Health Retreat | Prepared by Dirk J. Lambert, Trauma/EMDR Specialist",
+  latest: "latest", ideal: "ideal",
+}, spec.labels || {});
 // Sizes in half-points and spacing in twentieths of a point; the compact values apply to two-page summaries.
 const SZ = { body: C ? 19 : 22, cell: C ? 18 : 21, heading: C ? 22 : 26, title: C ? 28 : 36, client: C ? 24 : 28 };
 const SP = { after: C ? 100 : 200, line: C ? 250 : 300, cellPad: C ? 40 : 80, margin: C ? 900 : 1300 };
+SP.marginTop = SP.margin; SP.marginBottom = C ? 900 : 1200;
+// Optional "layout": { after, line, marginTop, marginBottom } fine-tunes paragraph spacing and the
+// top/bottom page margins (more room below the header and above the footer), e.g. to spread a compact report.
+Object.assign(SP, spec.layout || {});
 
 // Paragraph text may mark bold passages with **double asterisks**.
 const p = (text, opts = {}) => new Paragraph({
@@ -92,9 +104,9 @@ const scoresTable = () => new Table({
   width: { size: 6000, type: WidthType.DXA },
   columnWidths: [4200, 1800],
   rows: [
-    new TableRow({ tableHeader: true, children: [cell("Emotional category", 4200, true, "E8EEF5"), cell("Reported score", 1800, true, "E8EEF5")] }),
+    new TableRow({ tableHeader: true, children: [cell(L.scoreCategory, 4200, true, "E8EEF5"), cell(L.scoreValue, 1800, true, "E8EEF5")] }),
     ...spec.scores.rows.map(([name, n]) => new TableRow({ children: [cell(name, 4200), cell(n, 1800)] })),
-    new TableRow({ children: [cell("Total", 4200, true, "F3F3F3"), cell(spec.scores.total, 1800, true, "F3F3F3")] }),
+    new TableRow({ children: [cell(L.total, 4200, true, "F3F3F3"), cell(spec.scores.total, 1800, true, "F3F3F3")] }),
   ],
 });
 const spacer = () => new Paragraph({ spacing: { after: C ? 60 : 120 }, children: [] });
@@ -139,14 +151,14 @@ const scoreChart = ({ points, ideal = 15 }) => {
     const cells = [];
     for (let k = 0; k < stops.length - 1; k++) cells.push(segment(stops[k], stops[k + 1], stops[k + 1] <= pct ? fill : null));
     return new TableRow({ cantSplit: true, height: { value: 400, rule: "atLeast" }, children: [
-      textCell(label + (latest ? " (latest)" : ""), LABEL_W, { bold: latest }),
+      textCell(label + (latest ? ` (${L.latest})` : ""), LABEL_W, { bold: latest }),
       ...cells,
       textCell(`${pct}% (${score}/45)`, VALUE_W, { bold: latest }),
     ] });
   });
   const axis = (from, to, text, align) => textCell(text, (to - from) * UNIT, { span: to - from, size: 16, color: "666666", align });
   rows.push(new TableRow({ children: [
-    textCell("", LABEL_W), axis(0, ideal, "0%"), axis(ideal, 50, `${ideal}% ideal`), axis(50, 75, "50%"),
+    textCell("", LABEL_W), axis(0, ideal, "0%"), axis(ideal, 50, `${ideal}% ${L.ideal}`), axis(50, 75, "50%"),
     axis(75, 100, "100%", AlignmentType.RIGHT), textCell("", VALUE_W),
   ] }));
   return new Table({
@@ -184,21 +196,24 @@ for (const section of spec.sections) {
   }
 }
 
-children.push(h("Client Information", spec.clientInfoPageBreak !== false));
-for (const [label, text] of spec.clientInfo) children.push(labelled(label, text, 120));
+// Leave "clientInfo" out (or empty) to omit the Client Information section, e.g. in mid-term evaluations for the client.
+if (spec.clientInfo && spec.clientInfo.length) {
+  children.push(h(L.clientInfo, spec.clientInfoPageBreak !== false));
+  for (const [label, text] of spec.clientInfo) children.push(labelled(label, text, 120));
+}
 
 const doc = new Document({
   creator: "Dirk J. Lambert",
   title: TITLE + " - " + CLIENT,
   styles: { default: { document: { run: { font: FONT, size: SZ.body } } } },
   sections: [{
-    properties: { page: { margin: { top: SP.margin, bottom: C ? 900 : 1200, left: SP.margin, right: SP.margin } } },
+    properties: { page: { margin: { top: SP.marginTop, bottom: SP.marginBottom, left: SP.margin, right: SP.margin } } },
     headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [
-      new TextRun({ text: "Confidential | " + CLIENT + " | ", font: FONT, size: 18, color: "777777" }),
+      new TextRun({ text: L.confidential + " | " + CLIENT + " | ", font: FONT, size: 18, color: "777777" }),
       new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 18, color: "777777" }),
     ] })] }) },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [
-      new TextRun({ text: "New Paradigm Mental Health Retreat | Prepared by Dirk J. Lambert, Trauma/EMDR Specialist", font: FONT, size: 16, color: "777777" }),
+      new TextRun({ text: L.footer, font: FONT, size: 16, color: "777777" }),
     ] })] }) },
     children,
   }],
