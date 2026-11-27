@@ -67,7 +67,7 @@ Two to four strengths that are visible in the intake, for example the courage to
 
 Two parts. First, three to six practical things the client can start now, at home, each tied to a theme from their answers (for example a short daily breathing or grounding practice, a wind-down routine for sleep, a daily walk, writing down recurring thoughts before bed, setting one small boundary). Keep each one concrete and achievable, avoid medical advice, and never suggest stopping or changing medication.
 
-Second, the treatment option that best fits their presentation: 14-day intensive inpatient treatment, outpatient intensive therapy, online EMDR therapy, or inpatient treatment followed by online aftercare. Follow the Looking For rules in CLAUDE.md, and its Online-Only and Outpatient section when there is no inpatient component. When inpatient treatment is part of the recommendation, give the proposed dates from CLAUDE.md (admission 10 January 2027, program 10 to 23 January 2027, to be confirmed at the suitability consultation). The final decision rests with the client.
+Second, the treatment option that best fits their presentation: 14-day intensive inpatient treatment, outpatient intensive therapy, online EMDR therapy, or inpatient treatment followed by online aftercare. Follow the Looking For rules in CLAUDE.md, and its Online-Only and Outpatient section when there is no inpatient component. When inpatient treatment is part of the recommendation, give the proposed dates from CLAUDE.md (admission 14 February 2027, program 14 to 27 February 2027, to be confirmed at the suitability consultation). The final decision rests with the client.
 
 **Affirmations for You**
 

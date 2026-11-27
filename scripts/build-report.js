@@ -5,7 +5,7 @@
 // Content file shape (see scripts/report-content.example.json):
 // {
 //   "client": "Full Name",
-//   "subtitle": ["Proposed residential care | 10-23 January 2027", "New Paradigm Mental Health Retreat, Chiang Mai, Thailand"],
+//   "subtitle": ["Proposed residential care | 14-27 February 2027", "New Paradigm Mental Health Retreat, Chiang Mai, Thailand"],
 //   "preparedBy": "Prepared by Dirk J. Lambert, Trauma/EMDR Specialist",
 //   "intro": "Opening paragraph addressed to the client.",
 //   "scores": { "rows": [["Despair", 4], ["Fear", 2]], "total": 15 },

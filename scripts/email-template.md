@@ -6,7 +6,7 @@ Dear <First name>,
 
 I have attached your Emotional Evaluation and Treatment Plan. It explains your results, the themes that stood out in your assessment, and the path I would propose for you. Please read it at your own pace. Nothing in it is a diagnosis or a final decision. It is a starting point for our conversation.
 
-Based on what you shared, I am recommending <the recommended option from the report>. I have suggested 10 January 2027 as the admission date, with the program running from 10 to 23 January 2027. These dates are a proposal, and we can look at alternatives together if they do not suit you.
+Based on what you shared, I am recommending <the recommended option from the report>. I have suggested 14 February 2027 as the admission date, with the program running from 14 to 27 February 2027. These dates are a proposal, and we can look at alternatives together if they do not suit you.
 
 The next step is a suitability consultation: a private video call where we talk through the report, answer your questions, and confirm whether this program is the right fit for you and how it can be shaped around your needs. Please reply with a few days and times that work for you, along with your time zone, and I will send a calendar invitation.
 
